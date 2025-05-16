@@ -6,8 +6,7 @@ import heapq
 
 
 class Analyzer:
-    def __init__(self, registry, img, ym):
-        self.registry = registry
+    def __init__(self, img, ym):
         self.ym = ym
         self.img = img
 
@@ -21,7 +20,7 @@ class Analyzer:
 
     def next_item(self):
         '''
-        Moves self.x and self.y to the next black (unvisited) coordinate in self.registry
+        Moves self.x and self.y to the next black (unvisited) coordinate in self.img
         '''
 
         cur  = [1] 
@@ -35,89 +34,91 @@ class Analyzer:
                 self.x = 0
                 self.y += 1
 
-            cur = self.registry.getpixel((self.x, self.y))
+            cur = self.img.getpixel((self.x, self.y))
         
         return True
     
 
     def flood_fill(self, to_change, color):
-        data = self.registry.load()
+        data = self.img.load()
         for x in to_change:
             data[x[0], x[1]] = color
         return
     
 
 
-    def add_area(self, type, content):
-        if type == Background:
-            self.ym.add_background(Background(self.x, self.y))
-        if type == Yeast:
+    def add_area(self, content):
+        r_type = Yeast
+        if len(content) == 1:
             self.ym.add_regular(Yeast(self.x, self.y, len(content[0])))
-        return
+        if len(content) == 2:
+            r_type = BuddedYeast
+            self.ym.add_regular(BuddedYeast(self.x, self.y, len(content[0])))
+        if len(content) > 2:
+            r_type = ClusteredYeast
+            self.ym.add_regular(ClusteredYeast(self.x, self.y))
+        return r_type
     
 
-    def Q_pixel(self, x, y, Q):
-        r_type = False
+    def Q_pixel(self, x, y, Q, availability_matters = True):
 
         if x >= 0 and x < self.width and y >= 0 and y < self.length:
-            availability_left = self.registry.getpixel((x, y))
-            print(x, y, availability_left, colorKey['Q'], colorKey['New'])
-            if availability_left == colorKey['Q']:
-                r_type = True
-            elif availability_left == colorKey['New']:
-                print("QUEED")
-                data = self.registry.load()
-                data[x, y] = colorKey['Q']
-                Q.append((x, y))
+            availability_left = self.img.getpixel((x, y))
 
-        return r_type
+            if availability_left == colorKey['New'] or not availability_matters:
+                Q.append((x, y))
+            
+
+    def Q_around(self, x, y, Q, availability_matters = True):
+        self.Q_pixel(x-1, y, Q, availability_matters)
+        self.Q_pixel(x, y-1, Q, availability_matters)
+        self.Q_pixel(x+1, y, Q, availability_matters)
+        self.Q_pixel(x, y+1, Q, availability_matters)
+        return Q
+
 
 
 
     def get_region(self, x, y):
+        top = y
+        bottom = y
+        left = x
+        right = x
+
+
         regions = []
         current = []
         starting_color = self.img.getpixel((x, y))[0]
-        r_type = Yeast
-        Q = []
-        Q.append([x, y])
+        Q = [[x, y]]
 
         while Q:
             cur = Q.pop(0)
-            color = self.img.getpixel((cur[0], cur[1]))[0]
+            color = self.img.getpixel((cur[0], cur[1]))
+            if sum(color) != 0:
+                continue
 
-            if abs(color - starting_color) <= TOLERANCE:
+            data = self.img.load()
+            data[cur[0], cur[1]] = colorKey['Added']
+
+            if cur[0] > right:
+                right = cur[0]
+            if cur[0] < left:
+                left = cur[0]
+            if cur[1] > bottom:
+                bottom = cur[1]
+            if cur[1] < top:
+                top = cur[1]
+
+            if abs(color[0] - starting_color) == 0:
                 current.append(cur)
-                data = self.registry.load()
-                data[cur[0], cur[1]] = colorKey['Added']
 
-                bg_found = False
+                Q = self.Q_around(cur[0], cur[1], Q)
 
-                bg_found |= self.Q_pixel(cur[0]-1, cur[1], Q)
-                bg_found |= self.Q_pixel(cur[0], cur[1]-1, Q)
-                bg_found |= self.Q_pixel(cur[0]+1, cur[1], Q)
-                bg_found |= self.Q_pixel(cur[0], cur[1]+1, Q)
-
-                if bg_found:
-                    r_type = Background
-
-
-            else:
-                data = self.registry.load()
-                data[cur[0], cur[1]] = colorKey['New']
-
-
+    
             
-        
         regions.append(current)
 
-        if r_type != Background and len(regions) > 2:
-            r_type = ClusteredYeast
-
-        if r_type != Background and len(regions) == 2:
-            r_type = BuddedYeast
-
-        return r_type, regions
+        return regions, bottom - top, right - left
 
 
 
@@ -126,16 +127,20 @@ class Analyzer:
         does a flood search starting at self.x and self.y and continuing to the end of the file
         '''
 
-        while True:
+        while self.next_item():
 
-            region_type, to_change = \
-                self.get_region(self.x, self.y) 
+            to_change, height, width = self.get_region(self.x, self.y) 
             
 
-            self.add_area(region_type, to_change)
-            for region in to_change:
-                self.flood_fill(region, colorKey[region_type]) 
+            region_type = self.add_area(to_change)
 
-            if (not self.next_item()):
-                break #stop when there's no more
+            for region in to_change:
+                if (len(to_change) == 1 and \
+                    len(region) < IGNORE_SIZE) or \
+                    insufficiently_round(len(region), height, width):
+                    self.flood_fill(region, colorKey[Background]) 
+
+                else:
+                    self.flood_fill(region, colorKey[region_type]) 
+
 

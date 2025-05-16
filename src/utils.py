@@ -1,24 +1,24 @@
 
 
 from yeast import *
+from math import pi
 
 
 colorKey = {
     Background: (255, 255, 255),
-    Yeast: (155, 0, 255),
-    BuddedYeast: (0, 0, 255),
-    ClusteredYeast: (255, 0, 0),
+    Yeast: (255, 200, 200),
+    BuddedYeast: (0, 255, 0),
+    ClusteredYeast: (255, 255, 255),
 
     'New': (0, 0, 0),
-    'Added': (200, 200, 200),
-    'Q': (100, 100, 100),
+    'Added': (100, 100, 100),
 }
 
 
-TOLERANCE  = 0
-THRESHOLD = 70
-IGNORE_SIZE = 5
+THRESHOLD = 20
+IGNORE_SIZE = 30
 MAX_BUDDING_DISTANCE = 3
+REQUIRED_ROUNDNESS = .5
 
 
 SMOOTHING = 0 # reduces accuracy, probably don't use
@@ -27,8 +27,15 @@ CONTRAST_IGNORE = 1
 
 
 
-def sufficiently_round(area, width, height):
-    return True
+def insufficiently_round(area, width, height):
+    expected_area = (pi * (width / 2) * (height / 2))
+    
+    if expected_area > area * (1+REQUIRED_ROUNDNESS) or \
+        expected_area < area * REQUIRED_ROUNDNESS:
+
+        return True
+    
+    return False
 
 
 def filter_out_grays(img):

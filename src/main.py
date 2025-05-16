@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageFilter, ImageEnhance
+from PIL import Image, ImageOps, ImageFilter, ImageChops
 
 from utils import * 
 from fill import Analyzer
@@ -20,13 +20,16 @@ class main():
         filter_out_grays(img)
         img.save("cleaned_" + filename)
 
-        registry = Image.new('RGB', img.size, color=colorKey['New'])
+        #registry = Image.new('RGB', img.size, color=colorKey['New'])
 
-        a = Analyzer(registry, img, ym)
+        a = Analyzer(img, ym)
         a.analyze()
 
+        original = Image.open(filename)
+        img = ImageChops.multiply(original, img)
 
-        registry.save("results_of_" + filename,"PNG")
+
+        img.save("results_of_" + filename,"PNG")
     
 
 
