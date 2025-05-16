@@ -158,7 +158,6 @@ class Analyzer:
             to_change, height, width = self.get_region(self.x, self.y) 
             
 
-            region_type = self.add_area(to_change)
 
             for region in to_change:
                 if (len(to_change) == 1 and \
@@ -167,6 +166,7 @@ class Analyzer:
                     self.flood_fill(region, colorKey[Background]) 
 
                 else:
+                    region_type = self.add_area(to_change)
                     self.flood_fill(region, colorKey[region_type]) 
 
 
