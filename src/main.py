@@ -10,7 +10,7 @@ class main():
         return 
     
     def analyze(self, filename):
-        ym = YeastManager()
+        ym = YeastManager(filename.split(".")[0])
 
         img = Image.open(filename)
         img = ImageOps.grayscale(img) 
@@ -30,6 +30,7 @@ class main():
 
 
         img.save("results_of_" + filename,"PNG")
+        ym.results()
     
 
 

@@ -6,8 +6,8 @@ import heapq
 
 
 class Analyzer:
-    def __init__(self, img, ym):
-        self.ym = ym
+    def __init__(self, img, ym: YeastManager):
+        self.ym = ym 
         self.img = img
 
         self.width = img.size[0]
@@ -40,6 +40,11 @@ class Analyzer:
     
 
     def flood_fill(self, to_change, color):
+        '''
+        Fills all of the pixels in the array to_change with 
+        the given color
+        '''
+
         data = self.img.load()
         for x in to_change:
             data[x[0], x[1]] = color
@@ -48,6 +53,10 @@ class Analyzer:
 
 
     def add_area(self, content):
+        '''
+        Adds the area to the record as the appropriate kind of yeast based on
+        the nature of its content
+        '''
         r_type = Yeast
         if len(content) == 1:
             self.ym.add_regular(Yeast(self.x, self.y, len(content[0])))
@@ -61,6 +70,11 @@ class Analyzer:
     
 
     def Q_pixel(self, x, y, Q, availability_matters = True):
+        '''
+        Queues a coordinate (x, y) in Q only if the spot is valid,
+        also won't queue if the location is already visited (colorKey['New']) 
+        or availability_matters is turned off
+        '''
 
         if x >= 0 and x < self.width and y >= 0 and y < self.length:
             availability_left = self.img.getpixel((x, y))
@@ -70,6 +84,10 @@ class Analyzer:
             
 
     def Q_around(self, x, y, Q, availability_matters = True):
+        '''
+        Queues the four pixles around the given coordinate (x, y) in Q for a 
+        flood filling affect.
+        '''
         self.Q_pixel(x-1, y, Q, availability_matters)
         self.Q_pixel(x, y-1, Q, availability_matters)
         self.Q_pixel(x+1, y, Q, availability_matters)
@@ -80,6 +98,12 @@ class Analyzer:
 
 
     def get_region(self, x, y):
+        '''
+        identifies the potential cell region at coordinate
+        (x, y) and returns the pixels it includes, its height,
+        and its width.
+        '''
+
         top = y
         bottom = y
         left = x
@@ -124,7 +148,9 @@ class Analyzer:
 
     def analyze(self):
         '''
-        does a flood search starting at self.x and self.y and continuing to the end of the file
+        identifies, colors, and records
+        all potential cell regions 
+        (areas of the image with color colorKey['New'])
         '''
 
         while self.next_item():
