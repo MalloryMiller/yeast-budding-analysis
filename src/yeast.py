@@ -62,8 +62,9 @@ class ClusteredYeast(Yeast):
 
 
 class YeastManager:
-    def __init__(self, name):
+    def __init__(self, name, path):
         self.name = name
+        self.path = path
         self.regular = []
         self.regular_count = 0
 
@@ -94,7 +95,13 @@ class YeastManager:
 
 
     def generate_output(self, fname, header, array):
-        file = open(fname + ".csv", "w")
+        '''
+        Generates a csv file inside the folder for this yeast manager
+        with fname and the header given. Array should be a list of
+        stringable objects which will be the rows, the strings should be
+        already comma seperated
+        '''
+        file = open(self.path + self.name + "/" + fname + ".csv", "w")
 
         file.write(header + "\n")
         for b in array:
@@ -105,16 +112,26 @@ class YeastManager:
 
     
     def get_regular_output(self):
-        header = "Anchor Coordinate,Area"
+        '''
+        Generates csv files for regular yeast areas
+        '''
+        header = "Anchor Coordinate,Area (px)"
         self.generate_output("regular_" + self.name, header, self.regular)
 
 
     
     def get_budded_output(self):
-        header = "Total Area,Yeast 1 Anchor Coordinate,Yeast 1 Area,Yeast 2 Anchor Coordinate,Yeast 2 Area"
+        '''
+        Generates csv files for budded yeast areas
+        '''
+        header = "Total Area,Yeast 1 Anchor Coordinate,Yeast 1 Area (px),Yeast 2 Anchor Coordinate,Yeast 2 Area (px)"
         self.generate_output("budded_" + self.name, header, self.budded)
 
 
     def results(self):
+        '''
+        Generates csv files for both budded and regular yeast areas
+        '''
         self.get_regular_output()
         self.get_budded_output()
+

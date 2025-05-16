@@ -1,4 +1,5 @@
 from PIL import Image, ImageOps, ImageFilter, ImageChops
+import os
 
 from utils import * 
 from fill import Analyzer
@@ -10,7 +11,11 @@ class main():
         return 
     
     def analyze(self, filename):
-        ym = YeastManager(filename.split(".")[0])
+        path = '/'.join(filename.split('/')[:-1]) + "/"
+        title = filename.split('/')[-1].split(".")[0]
+        os.makedirs(path + title, exist_ok=True)
+        
+        ym = YeastManager(title, path)
 
         img = Image.open(filename)
         img = ImageOps.grayscale(img) 
@@ -18,7 +23,7 @@ class main():
         img = img.convert("RGB")
         img = ImageOps.autocontrast(img, cutoff = CONTRAST_CUTOFF, ignore = CONTRAST_IGNORE)
         filter_out_grays(img)
-        img.save("cleaned_" + filename)
+        img.save(path + title + "/cleaned_" + title + ".png")
 
         #registry = Image.new('RGB', img.size, color=colorKey['New'])
 
@@ -29,7 +34,7 @@ class main():
         img = ImageChops.multiply(original, img)
 
 
-        img.save("results_of_" + filename,"PNG")
+        img.save(path + title + "/results_of_" + title + ".png","PNG")
         ym.results()
     
 
@@ -37,5 +42,5 @@ class main():
 
 m = main()
 
-m.analyze("test.jpg")
-m.analyze("full_test.jpg")
+m.analyze("tests/test.jpg")
+m.analyze("tests/full_test.jpg")
