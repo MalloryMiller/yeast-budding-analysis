@@ -15,7 +15,7 @@ class main():
         title = filename.split('/')[-1].split(".")[0]
         os.makedirs(path + title, exist_ok=True)
         
-        ym = YeastManager(title, path)
+        ym = YeastManager(title, path, UNIT_PER_PIXEL, UNITS)
 
         img = Image.open(filename)
         img = ImageOps.grayscale(img) 

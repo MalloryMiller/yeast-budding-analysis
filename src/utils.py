@@ -4,7 +4,7 @@ from yeast import *
 from math import pi
 
 
-colorKey = {
+colorKey = { # values can be changed but MUST be distinct
     Background: (255, 255, 255),
     Yeast: (255, 200, 200),
     BuddedYeast: (0, 255, 0),
@@ -15,11 +15,13 @@ colorKey = {
 }
 
 
-THRESHOLD = 20
-IGNORE_SIZE = 30
-MAX_BUDDING_DISTANCE = 3
-REQUIRED_ROUNDNESS = .5
+UNIT_PER_PIXEL = 20/78 # reference scale of 20 micrometers that is 78 pixels long
+UNITS = "μm"
 
+THRESHOLD = 20 # in grayscale space 0-255
+IGNORE_SIZE = 30 # in px
+MAX_BUDDING_DISTANCE = 3 # in px
+REQUIRED_ROUNDNESS = .5 # in % of expected ovular area based on height and width
 
 SMOOTHING = 0 # reduces accuracy, probably don't use
 CONTRAST_CUTOFF = 2
