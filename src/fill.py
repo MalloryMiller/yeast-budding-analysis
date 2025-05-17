@@ -17,26 +17,52 @@ class Analyzer:
         self.y = 0
         
 
+    def move_cursor(self, target_color, x_start, y_start, x_end, y_end, reset_lines = False):
+        '''
+        returns the coordinates of the next pixel that is the target_color in self.img
+
+        When True, reset_lines will reset the x value to 0 insteaed of x_start when it reaches the end of a row.
+        This is appropriate for when the function is intending to search the entire image rather than
+        a square region. When set to False, it will only search that smaller region for the next pixel.
+        '''
+
+        x = x_start
+        y = y_start
+
+        cur  = None
+
+        while cur != target_color: # will run once since cur = None
+            x += 1
+
+            if x == x_end:
+                if y == y_end - 1: # end reached, False means no more items
+                    return False, x, y
+                
+                if reset_lines:
+                    x = 0
+                else:
+                    x = x_start
+
+                y += 1
+            cur = self.img.getpixel([x, y])
+        
+        return True, x, y # item found at [x, y]
+
+
 
     def next_item(self):
         '''
         Moves self.x and self.y to the next black (unvisited) coordinate in self.img
         '''
 
-        cur  = [1] 
-
-        while sum(cur) != 0: # will run once since cur = [1]
-            self.x += 1
-
-            if self.x == self.width:
-                if self.y == self.length-1:
-                    return False
-                self.x = 0
-                self.y += 1
-
-            cur = self.img.getpixel((self.x, self.y))
+        status, self.x, self.y = self.move_cursor(colorKey['New'],
+                                                  self.x, self.y,
+                                                  self.width, self.length,
+                                                  reset_lines=True)
         
-        return True
+        return status
+    
+
     
 
     def flood_fill(self, to_change, color):
@@ -47,6 +73,7 @@ class Analyzer:
 
         data = self.img.load()
         for x in to_change:
+            print(x)
             data[x[0], x[1]] = color
         return
     
@@ -69,51 +96,47 @@ class Analyzer:
         return r_type
     
 
-    def Q_pixel(self, x, y, Q, availability_matters = True):
+    def Q_pixel(self, x, y, Q, included_color="New"):
         '''
-        Queues a coordinate (x, y) in Q only if the spot is valid,
-        also won't queue if the location is already visited (colorKey['New']) 
-        or availability_matters is turned off
+        Queues a coordinate (x, y) in Q only if the spot is valid
+        and has the color colorKey[included_color], with included_color being
+        a string or class referenced in the dictionary colorKey
         '''
 
         if x >= 0 and x < self.width and y >= 0 and y < self.length:
-            availability_left = self.img.getpixel((x, y))
+            color = self.img.getpixel((x, y))
 
-            if availability_left == colorKey['New'] or not availability_matters:
+            if color == colorKey[included_color]:
                 Q.append((x, y))
             
 
-    def Q_around(self, x, y, Q, availability_matters = True):
+    def Q_around(self, x, y, Q, included_color="New"):
         '''
         Queues the four pixles around the given coordinate (x, y) in Q for a 
         flood filling affect.
         '''
-        self.Q_pixel(x-1, y, Q, availability_matters)
-        self.Q_pixel(x, y-1, Q, availability_matters)
-        self.Q_pixel(x+1, y, Q, availability_matters)
-        self.Q_pixel(x, y+1, Q, availability_matters)
+        self.Q_pixel(x, y-1, Q, included_color)
+        self.Q_pixel(x+1, y, Q, included_color)
+        self.Q_pixel(x, y+1, Q, included_color)
+        self.Q_pixel(x-1, y, Q, included_color)
         return Q
 
 
+    def cascade_fill(self, x, y, current, top, bottom, right, left):
+        to_add = []
+        start = [top, left]
 
+        return to_add
 
-    def get_region(self, x, y):
-        '''
-        identifies the potential cell region at coordinate
-        (x, y) and returns the pixels it includes, its height,
-        and its width.
-        '''
+    
+    def get_one_area(self, x, y, current):
+        Q = [[x, y]]
+        starting_color = self.img.getpixel((x, y))[0]
 
         top = y
         bottom = y
         left = x
         right = x
-
-
-        regions = []
-        current = []
-        starting_color = self.img.getpixel((x, y))[0]
-        Q = [[x, y]]
 
         while Q:
             cur = Q.pop(0)
@@ -133,39 +156,64 @@ class Analyzer:
             if cur[1] < top:
                 top = cur[1]
 
+
             if abs(color[0] - starting_color) == 0:
                 current.append(cur)
 
                 Q = self.Q_around(cur[0], cur[1], Q)
 
-    
-            
-        regions.append(current)
+        current.extend(self.cascade_fill(x, y, current, top, bottom, right, left))
+        return bottom - top, right - left
 
-        return regions, bottom - top, right - left
+
+
+
+    def get_region(self, x, y):
+        '''
+        identifies the potential cell region at coordinate
+        (x, y) and returns the pixels it includes, its height,
+        and its width.
+        '''
+
+        areas = []
+        current = []
+        widths = []
+        lengths = []
+    
+        width, length = self.get_one_area(x, y, current)
+        widths.append(width)
+        lengths.append(length)
+        areas.append(current)
+
+        return areas, widths, lengths
 
 
 
     def analyze(self):
         '''
         identifies, colors, and records
-        all potential cell regions 
-        (areas of the image with color colorKey['New'])
+        all potential cell regions (areas of self.img with color colorKey['New'])
         '''
 
         while self.next_item():
 
-            to_change, height, width = self.get_region(self.x, self.y) 
+            to_change, heights, widths = self.get_region(self.x, self.y) 
+            should_ignore = False
             
+            for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
+                if insufficiently_round(len(to_change[area]), heights[area], widths[area]):
+                    should_ignore = True
+                    break
 
 
             for region in to_change:
                 if (len(to_change) == 1 and \
-                    len(region) < IGNORE_SIZE) or \
-                    insufficiently_round(len(region), height, width):
+                    len(region) < IGNORE_SIZE) or should_ignore:
+
                     self.flood_fill(region, colorKey[Background]) 
 
-                else:
+                else: # will now record area as appropriate type
+
                     region_type = self.add_area(to_change)
                     self.flood_fill(region, colorKey[region_type]) 
 
