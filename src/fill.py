@@ -96,35 +96,43 @@ class Analyzer:
         return r_type
     
 
-    def Q_pixel(self, x, y, Q, included_color="New"):
+    def Q_pixel(self, x, y, Q, validate_color):
         '''
-        Queues a coordinate (x, y) in Q only if the spot is valid
-        and has the color colorKey[included_color], with included_color being
-        a string or class referenced in the dictionary colorKey
+        Queues a coordinate (x, y) in Q only if the spot is valid 
+        (exists within the size of the image and passes validate_color).
+
+        validate_color must be a function which takes in a color and returns a boolean.
+        Pixels with colors that return True from this function will be Queued in Q, False ones will be ignored.
         '''
 
         if x >= 0 and x < self.width and y >= 0 and y < self.length:
             color = self.img.getpixel((x, y))
 
-            if color == colorKey[included_color]:
+            if validate_color(color):
                 Q.append((x, y))
             
 
-    def Q_around(self, x, y, Q, included_color="New"):
+    def Q_around(self, x, y, Q, validate_color):
         '''
         Queues the four pixles around the given coordinate (x, y) in Q for a 
         flood filling affect.
         '''
-        self.Q_pixel(x, y-1, Q, included_color)
-        self.Q_pixel(x+1, y, Q, included_color)
-        self.Q_pixel(x, y+1, Q, included_color)
-        self.Q_pixel(x-1, y, Q, included_color)
+        self.Q_pixel(x, y-1, Q, validate_color)
+        self.Q_pixel(x+1, y, Q, validate_color)
+        self.Q_pixel(x, y+1, Q, validate_color)
+        self.Q_pixel(x-1, y, Q, validate_color)
         return Q
 
 
     def cascade_fill(self, x, y, current, top, bottom, right, left):
         to_add = []
         start = [top, left]
+
+        '''
+        TODO
+
+        ???
+        '''
 
         return to_add
 
@@ -160,7 +168,7 @@ class Analyzer:
             if abs(color[0] - starting_color) == 0:
                 current.append(cur)
 
-                Q = self.Q_around(cur[0], cur[1], Q)
+                Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'])
 
         current.extend(self.cascade_fill(x, y, current, top, bottom, right, left))
         return bottom - top, right - left
@@ -184,6 +192,19 @@ class Analyzer:
         widths.append(width)
         lengths.append(length)
         areas.append(current)
+
+        '''
+        TODO
+        - copy current as Q with 3rd value 0 added to each coord
+        - while Q:
+            - cur = Q.pop(0)
+            - if cur[2] > MAX_BUDDING_DISTANCE:
+                - continue
+            - if self.img.getpixel((x, y)) == colorKey['New']:
+                - run get_region on that spot and incorporate that data
+            - else:
+                - Q_around(cur[0], cur[1], Q, lambda color: color == colorKey[Background] or color == colorKey['New'])
+        '''
 
         return areas, widths, lengths
 
