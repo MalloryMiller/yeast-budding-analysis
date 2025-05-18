@@ -44,3 +44,5 @@ m = main()
 
 m.analyze("tests/test.jpg")
 m.analyze("tests/full_test.jpg")
+
+m.analyze("tests/cleaner_test.jpg")

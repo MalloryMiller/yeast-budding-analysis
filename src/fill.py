@@ -73,7 +73,6 @@ class Analyzer:
 
         data = self.img.load()
         for x in to_change:
-            print(x)
             data[x[0], x[1]] = color
         return
     
@@ -89,10 +88,16 @@ class Analyzer:
             self.ym.add_regular(Yeast(self.x, self.y, len(content[0])))
         if len(content) == 2:
             r_type = BuddedYeast
-            self.ym.add_regular(BuddedYeast(self.x, self.y, len(content[0])))
+            yeast1 = Yeast(self.x, self.y, len(content[0]))
+            yeast2 = Yeast(content[1][0][0], content[1][0][1], len(content[1]))
+            self.ym.add_regular(BuddedYeast(self.x, self.y, yeast1, yeast2))
         if len(content) > 2:
             r_type = ClusteredYeast
-            self.ym.add_regular(ClusteredYeast(self.x, self.y))
+            yeasts = []
+            for yeast in content:
+                y = Yeast(yeast[0][0], yeast[0][1], len(yeast))
+                yeasts.append(y)
+            self.ym.add_regular(ClusteredYeast(self.x, self.y, yeasts))
         return r_type
     
 
@@ -193,18 +198,31 @@ class Analyzer:
         lengths.append(length)
         areas.append(current)
 
-        '''
-        TODO
-        - copy current as Q with 3rd value 0 added to each coord
-        - while Q:
-            - cur = Q.pop(0)
-            - if cur[2] > MAX_BUDDING_DISTANCE:
-                - continue
-            - if self.img.getpixel((x, y)) == colorKey['New']:
-                - run get_region on that spot and incorporate that data
-            - else:
-                - Q_around(cur[0], cur[1], Q, lambda color: color == colorKey[Background] or color == colorKey['New'])
-        '''
+        Q = []
+        for x in current:
+            new_coord = list(x)
+            new_coord.append(0)
+            Q.append(new_coord)
+
+        while Q:
+            cur = Q.pop(0)
+            if cur[2] > MAX_BUDDING_DISTANCE:
+                continue
+
+            if self.img.getpixel((cur[0], cur[1])) == colorKey['New']:
+                new_areas, new_widths, new_lengths = self.get_region(cur[0], cur[1])
+                areas.extend(new_areas)
+                widths.extend(new_widths)
+                lengths.extend(new_lengths)
+
+            else:
+                new_points = self.Q_around(cur[0], cur[1], [], 
+                                           lambda color: color == colorKey[Background] or color == colorKey['New'])
+                for x in new_points:
+                    Q_coord = list(x)
+                    Q_coord.append(cur[2] + 1)
+                    Q.append(Q_coord)
+
 
         return areas, widths, lengths
 
