@@ -97,7 +97,7 @@ class YeastManager:
 
     def add_budded(self, budded : BuddedYeast):
         budded.yeast_manager = self
-        self.regular.append(budded)
+        self.budded.append(budded)
         self.budded_count += 1
 
     def add_cluster(self, cluster : ClusteredYeast):

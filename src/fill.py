@@ -86,18 +86,21 @@ class Analyzer:
         r_type = Yeast
         if len(content) == 1:
             self.ym.add_regular(Yeast(self.x, self.y, len(content[0])))
+
         if len(content) == 2:
             r_type = BuddedYeast
             yeast1 = Yeast(self.x, self.y, len(content[0]))
             yeast2 = Yeast(content[1][0][0], content[1][0][1], len(content[1]))
-            self.ym.add_regular(BuddedYeast(self.x, self.y, yeast1, yeast2))
+            self.ym.add_budded(BuddedYeast(self.x, self.y, yeast1, yeast2))
+
         if len(content) > 2:
             r_type = ClusteredYeast
             yeasts = []
             for yeast in content:
                 y = Yeast(yeast[0][0], yeast[0][1], len(yeast))
                 yeasts.append(y)
-            self.ym.add_regular(ClusteredYeast(self.x, self.y, yeasts))
+            self.ym.add_cluster(ClusteredYeast(self.x, self.y, yeasts))
+
         return r_type
     
 
@@ -238,22 +241,21 @@ class Analyzer:
 
             to_change, heights, widths = self.get_region(self.x, self.y) 
             should_ignore = False
+
             
             for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
-                if insufficiently_round(len(to_change[area]), heights[area], widths[area]):
+                if (len(to_change) == 1 and len(to_change[area]) < IGNORE_SIZE) or \
+                    insufficiently_round(len(to_change[area]), heights[area], widths[area]):
+
                     should_ignore = True
                     break
 
-
-            for region in to_change:
-                if (len(to_change) == 1 and \
-                    len(region) < IGNORE_SIZE) or should_ignore:
-
-                    self.flood_fill(region, colorKey[Background]) 
-
-                else: # will now record area as appropriate type
-
-                    region_type = self.add_area(to_change)
-                    self.flood_fill(region, colorKey[region_type]) 
+            if should_ignore:
+                for area in to_change:
+                        self.flood_fill(area, colorKey[Background]) 
+            else:
+                region_type = self.add_area(to_change)
+                for area in to_change:
+                    self.flood_fill(area, colorKey[region_type]) 
 
 
