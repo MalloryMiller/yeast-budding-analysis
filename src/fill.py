@@ -244,7 +244,7 @@ class Analyzer:
 
             
             for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
-                if (len(to_change) == 1 and len(to_change[area]) < IGNORE_SIZE) or \
+                if (len(to_change) == 1 and len(to_change[area]) < IGNORE_ISOLATED_SIZE) or \
                     insufficiently_round(len(to_change[area]), heights[area], widths[area]):
 
                     should_ignore = True

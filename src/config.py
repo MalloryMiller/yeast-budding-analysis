@@ -18,7 +18,7 @@ UNIT_PER_PIXEL = 20/78 # reference scale of 20 micrometers that is 78 pixels lon
 UNITS = "μm"
 
 THRESHOLD = 20 # in grayscale space 0-255
-IGNORE_SIZE = 30 # in px
+IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
 MAX_BUDDING_DISTANCE = 4 # in px
 REQUIRED_ROUNDNESS = .50 # in % of expected ovular area based on height and width
 
