@@ -4,6 +4,7 @@ from yeast import *
 
 colorKey = { # values can be changed but MUST be distinct
     Background: (255, 255, 255),
+    'Ignored':(0,255,255),
     Yeast: (255, 200, 200),
     BuddedYeast: (200, 255, 200),
     ClusteredYeast: (200, 200, 255),
@@ -17,13 +18,16 @@ colorKey = { # values can be changed but MUST be distinct
 UNIT_PER_PIXEL = 20/78 # reference scale of 20 micrometers that is 78 pixels long
 UNITS = "μm"
 
-THRESHOLD = 20 # in grayscale space 0-255
+THRESHOLD = 5 # in grayscale space 0-255
+
 IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
-MAX_BUDDING_DISTANCE = 20 # in px
+IGNORE_ALL_SIZE = 20
+
+MAX_BUDDING_DISTANCE = 6 # in px
 REQUIRED_ROUNDNESS = .50 # in % of expected ovular area based on height and width
 
 
 SMOOTHING = 0 # reduces accuracy, probably don't use
 CONTRAST_CUTOFF = 2
-CONTRAST_IGNORE = 1
+CONTRAST_IGNORE = 4
 

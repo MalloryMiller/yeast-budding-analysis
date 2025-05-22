@@ -120,7 +120,7 @@ class Analyzer:
                 Q.append((x, y))
             
 
-    def Q_around(self, x, y, Q, validate_color):
+    def Q_around(self, x, y, Q, validate_color, corners=False):
         '''
         Queues the four pixles around the given coordinate (x, y) in Q for a 
         flood filling affect.
@@ -130,10 +130,11 @@ class Analyzer:
         self.Q_pixel(x, y+1, Q, validate_color)
         self.Q_pixel(x-1, y, Q, validate_color)
 
-        self.Q_pixel(x-1, y-1, Q, validate_color)
-        self.Q_pixel(x+1, y+1, Q, validate_color)
-        self.Q_pixel(x-1, y+1, Q, validate_color)
-        self.Q_pixel(x-1, y-1, Q, validate_color)
+        if corners:
+            self.Q_pixel(x-1, y-1, Q, validate_color)
+            self.Q_pixel(x+1, y+1, Q, validate_color)
+            self.Q_pixel(x-1, y+1, Q, validate_color)
+            self.Q_pixel(x-1, y-1, Q, validate_color)
 
         return Q
 
@@ -182,7 +183,7 @@ class Analyzer:
             if abs(color[0] - starting_color) == 0:
                 current.append(cur)
 
-                Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'])
+                Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
 
         current.extend(self.cascade_fill(x, y, current, top, bottom, right, left))
         return bottom - top, right - left
@@ -224,7 +225,7 @@ class Analyzer:
 
             else:
                 new_points = self.Q_around(cur[0], cur[1], [], 
-                                           lambda color: color == colorKey[Background] or color == colorKey['New'])
+                                           lambda color: color == colorKey['Ignored'] or color == colorKey[Background] or color == colorKey['New'])
                 for x in new_points:
                     Q.append(list(x), cur[2] + 1)
 
@@ -242,20 +243,24 @@ class Analyzer:
         while self.next_item():
 
             to_change, heights, widths = self.get_region(self.x, self.y) 
-            should_ignore = False
+            should_ignore = not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
+            should_ignore = []
             
             for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
-                if (len(to_change) == 1 and len(to_change[area]) < IGNORE_ISOLATED_SIZE) or \
-                    insufficiently_round(len(to_change[area]), heights[area], widths[area]):
-
-                    should_ignore = True
+                if insufficiently_round(len(to_change[area]), heights[area], widths[area]) or \
+                    len(to_change[area]) < IGNORE_ALL_SIZE:
+                    should_ignore.append(area)
                     break
 
-            if should_ignore:
-                for area in to_change:
-                        self.flood_fill(area, colorKey[Background]) 
-            else:
+            should_ignore.reverse()
+            for area in should_ignore:
+                    self.flood_fill(to_change.pop(area), colorKey['Ignored']) 
+                    
+
+
+
+            if to_change:
                 region_type = self.add_area(to_change)
                 for area in to_change:
                     self.flood_fill(area, colorKey[region_type]) 
