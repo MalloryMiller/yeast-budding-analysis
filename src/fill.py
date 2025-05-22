@@ -129,6 +129,12 @@ class Analyzer:
         self.Q_pixel(x+1, y, Q, validate_color)
         self.Q_pixel(x, y+1, Q, validate_color)
         self.Q_pixel(x-1, y, Q, validate_color)
+
+        self.Q_pixel(x-1, y-1, Q, validate_color)
+        self.Q_pixel(x+1, y+1, Q, validate_color)
+        self.Q_pixel(x-1, y+1, Q, validate_color)
+        self.Q_pixel(x-1, y-1, Q, validate_color)
+
         return Q
 
 
@@ -201,11 +207,9 @@ class Analyzer:
         lengths.append(length)
         areas.append(current)
 
-        Q = []
+        Q = WeightedSetQueue()
         for x in current:
-            new_coord = list(x)
-            new_coord.append(0)
-            Q.append(new_coord)
+            Q.append(list(x), 0)
 
         while Q:
             cur = Q.pop(0)
@@ -222,9 +226,7 @@ class Analyzer:
                 new_points = self.Q_around(cur[0], cur[1], [], 
                                            lambda color: color == colorKey[Background] or color == colorKey['New'])
                 for x in new_points:
-                    Q_coord = list(x)
-                    Q_coord.append(cur[2] + 1)
-                    Q.append(Q_coord)
+                    Q.append(list(x), cur[2] + 1)
 
 
         return areas, widths, lengths

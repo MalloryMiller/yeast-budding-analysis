@@ -39,3 +39,50 @@ def filter_out_grays(img):
 
 
 
+
+class WeightedSetQueue():
+
+    def __init__(self):
+
+        '''
+        list of coordinates (values are [x, y]), but without repeated values.
+        Weights may repeat, but values themselves may not.
+        weights are remembered first come first serve if a value
+        is repeated.
+
+        Weights are returned as a third entry in the array when values are popped.
+        '''
+        self.Q = []
+        self.values = set([])
+
+    def __bool__(self):
+        return len(self.Q).__bool__()
+
+    def pop(self, index=0, remove=False):
+        '''
+        returns an array of [x, y, weight]
+
+        if remove=True, the value that was popped can be appended again and restored.
+        Otherwise that value will not be reentered into the Q ever.
+        '''
+        if remove:
+            value = [self.Q[index][0], self.Q[index][1]]
+            self.values.remove(value)
+        return self.Q.pop(index)
+    
+    def append(self, value, weight):
+        '''
+        value must be in the form [x, y]
+        weight may be anything
+        '''
+        if str(value) in self.values:
+            return
+        self.values.add(str(value))
+        value.extend([weight])
+        self.Q.append(value)
+
+
+
+
+
+

@@ -19,7 +19,7 @@ UNITS = "μm"
 
 THRESHOLD = 20 # in grayscale space 0-255
 IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
-MAX_BUDDING_DISTANCE = 4 # in px
+MAX_BUDDING_DISTANCE = 20 # in px
 REQUIRED_ROUNDNESS = .50 # in % of expected ovular area based on height and width
 
 
