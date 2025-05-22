@@ -4,6 +4,42 @@ from config import *
 from math import pi
 
 
+TOP = 1
+BOTTOM = 2
+LEFT = 4
+RIGHT = 8
+
+TOPLEFT = 16
+TOPRIGHT = 32
+BOTTOMLEFT = 64
+BOTTOMRIGHT = 128
+
+SIDES_FOR_SURROUNDED = [ # must be in descending order.
+        #BOTTOMRIGHT, 
+        #BOTTOMLEFT, 
+        #TOPRIGHT, 
+        #TOPLEFT, 
+        RIGHT, 
+        LEFT, 
+        BOTTOM, 
+        TOP,
+
+]
+ORIGINAL = sum(SIDES_FOR_SURROUNDED) + 256
+
+
+
+def is_surrounded(score):
+    
+    sides = 0
+
+    for s in SIDES_FOR_SURROUNDED:
+        if (score - s) >= 0:
+            sides += 1
+            score -= s
+
+    return sides > len(SIDES_FOR_SURROUNDED) // 2
+     
 
 def insufficiently_round(area, width, height):
     '''

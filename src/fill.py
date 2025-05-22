@@ -134,21 +134,74 @@ class Analyzer:
             self.Q_pixel(x-1, y-1, Q, validate_color)
             self.Q_pixel(x+1, y+1, Q, validate_color)
             self.Q_pixel(x-1, y+1, Q, validate_color)
-            self.Q_pixel(x-1, y-1, Q, validate_color)
+            self.Q_pixel(x+1, y-1, Q, validate_color)
 
         return Q
 
 
     def cascade_fill(self, x, y, current, top, bottom, right, left):
         to_add = []
-        start = [top, left]
+        neighbor_vector = []
+        width = right - left + 2
+        height = bottom - top + 2
+        
+        if not width-2 or not height-2:
+            return to_add
+        
+        print(width, height, current)
 
-        '''
-        TODO
+        for y in range(height):
+            cur = []
+            for x in range(width):
+                cur.append(0)
+            neighbor_vector.append(cur)
 
-        ???
-        '''
+        for c in current:
+            neighbor_vector[c[1] - top][c[0] - left] = ORIGINAL
 
+
+        for y in range(1,height):
+            for x in range(width):
+                if neighbor_vector[y - 1][x] & TOP and not neighbor_vector[y][x] & TOP:
+                    neighbor_vector[y][x] += TOP
+
+        for y in range(height):
+            for x in range(1,width):
+                if neighbor_vector[y][x - 1] & LEFT and not neighbor_vector[y][x] & LEFT:
+                    neighbor_vector[y][x] += LEFT
+
+        inverse_neighbor_vector = neighbor_vector.copy()
+        inverse_neighbor_vector.reverse()
+        for x in range(len(inverse_neighbor_vector)):
+            inverse_neighbor_vector[x].reverse()
+
+
+        for y in range(1,height):
+            for x in range(width):
+                if neighbor_vector[y - 1][x] & BOTTOM and not neighbor_vector[y][x] & BOTTOM:
+                    neighbor_vector[y][x] += BOTTOM
+
+        for y in range(height):
+            for x in range(1,width):
+                if neighbor_vector[y][x - 1] & RIGHT and not neighbor_vector[y][x] & RIGHT:
+                    neighbor_vector[y][x] += RIGHT
+
+        inverse_neighbor_vector.reverse()
+        neighbor_vector = inverse_neighbor_vector
+        for y in range(len(neighbor_vector)):
+            neighbor_vector[y].reverse()
+
+
+
+        for y in range(height):
+            for x in range(width):
+
+                if is_surrounded(neighbor_vector[y][x]) and neighbor_vector[y][x] != ORIGINAL and \
+                    x + left > 0 and y + right > 0 and \
+                        x + left < self.img.size[0] and y + right < self.img.size[0]:
+                    to_add.append([x + left, y + top])
+        
+        print(width, height, neighbor_vector)
         return to_add
 
     
@@ -186,6 +239,7 @@ class Analyzer:
                 Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
 
         current.extend(self.cascade_fill(x, y, current, top, bottom, right, left))
+
         return bottom - top, right - left
 
 
@@ -216,7 +270,7 @@ class Analyzer:
             cur = Q.pop(0)
             if cur[2] > MAX_BUDDING_DISTANCE:
                 continue
-
+            
             if self.img.getpixel((cur[0], cur[1])) == colorKey['New']:
                 new_areas, new_widths, new_lengths = self.get_region(cur[0], cur[1])
                 areas.extend(new_areas)
@@ -255,12 +309,10 @@ class Analyzer:
 
             should_ignore.reverse()
             for area in should_ignore:
-                    self.flood_fill(to_change.pop(area), colorKey['Ignored']) 
+                    self.flood_fill(to_change.pop(area), colorKey['Ignored']) #colors and removes areas for removal
                     
 
-
-
-            if to_change:
+            if to_change: # if not all of them were ignored add what's left
                 region_type = self.add_area(to_change)
                 for area in to_change:
                     self.flood_fill(area, colorKey[region_type]) 
