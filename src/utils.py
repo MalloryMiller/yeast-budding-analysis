@@ -14,6 +14,7 @@ TOPRIGHT = 32
 BOTTOMLEFT = 64
 BOTTOMRIGHT = 128
 
+
 SIDES_FOR_SURROUNDED = [ # must be in descending order.
         #BOTTOMRIGHT, 
         #BOTTOMLEFT, 
@@ -25,9 +26,37 @@ SIDES_FOR_SURROUNDED = [ # must be in descending order.
         TOP,
 
 ]
+
 ORIGINAL = sum(SIDES_FOR_SURROUNDED) + 256
 
 
+
+POSN_ADJUSTMENT = {
+        #BOTTOMRIGHT : [1, 1], 
+        #BOTTOMLEFT : [-1, 1], 
+        #TOPRIGHT : [1, -1], 
+        #TOPLEFT : [-1, -1], 
+        RIGHT : [1, 0], 
+        LEFT : [-1, 0], 
+        BOTTOM : [0, 1], 
+        TOP : [0, -1], 
+}
+
+
+def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False):
+        ys = list(range(len(matrix)))
+        xs = list(range(len(matrix[0])))
+        
+        if POSN_ADJUSTMENT[direction][0] > 0:
+            xs.reverse()
+        if POSN_ADJUSTMENT[direction][1] > 0:
+            ys.reverse()
+
+        for y in ys:
+            for x in xs:
+                if matrix[y - abs(POSN_ADJUSTMENT[direction][1])][x - abs(POSN_ADJUSTMENT[direction][0])] & direction and \
+                    not matrix[y][x] & direction:
+                    matrix[y][x] += direction
 
 def is_surrounded(score):
     

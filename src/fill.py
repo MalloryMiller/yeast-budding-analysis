@@ -147,8 +147,6 @@ class Analyzer:
         
         if not width-2 or not height-2:
             return to_add
-        
-        print(width, height, current)
 
         for y in range(height):
             cur = []
@@ -176,20 +174,21 @@ class Analyzer:
             inverse_neighbor_vector[x].reverse()
 
 
-        for y in range(1,height):
+
+        for y in range(-height, 0):
             for x in range(width):
-                if neighbor_vector[y - 1][x] & BOTTOM and not neighbor_vector[y][x] & BOTTOM:
-                    neighbor_vector[y][x] += BOTTOM
+                if neighbor_vector[(-y) - 1][x] & BOTTOM and not neighbor_vector[y][x] & BOTTOM:
+                    neighbor_vector[-y][x] += BOTTOM
 
         for y in range(height):
             for x in range(1,width):
                 if neighbor_vector[y][x - 1] & RIGHT and not neighbor_vector[y][x] & RIGHT:
                     neighbor_vector[y][x] += RIGHT
 
+        for y in range(len(neighbor_vector)):
+            inverse_neighbor_vector[y].reverse()
         inverse_neighbor_vector.reverse()
         neighbor_vector = inverse_neighbor_vector
-        for y in range(len(neighbor_vector)):
-            neighbor_vector[y].reverse()
 
 
 
@@ -201,7 +200,6 @@ class Analyzer:
                         x + left < self.img.size[0] and y + right < self.img.size[0]:
                     to_add.append([x + left, y + top])
         
-        print(width, height, neighbor_vector)
         return to_add
 
     

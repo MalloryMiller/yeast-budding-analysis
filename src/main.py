@@ -42,10 +42,10 @@ class main():
 
 m = main()
 
-#m.analyze("tests/test.jpg")
-#print("first done")
-#m.analyze("tests/full_test.jpg")
-#print("second done")
+m.analyze("tests/test.jpg")
+print("first done")
+m.analyze("tests/full_test.jpg")
+print("second done")
 
-#m.analyze("tests/cleaner_test.jpg")
+m.analyze("tests/cleaner_test.jpg")
 m.analyze("tests/hollow_test.jpg")
