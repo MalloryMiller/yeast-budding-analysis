@@ -157,39 +157,16 @@ class Analyzer:
         for c in current:
             neighbor_vector[c[1] - top][c[0] - left] = ORIGINAL
 
+        print("\n\n\n", neighbor_vector)
+        update_matrix_in_direction(neighbor_vector, TOP)
+        print("\n", neighbor_vector)
+        update_matrix_in_direction(neighbor_vector, BOTTOM)
+        print("\n", neighbor_vector)
 
-        for y in range(1,height):
-            for x in range(width):
-                if neighbor_vector[y - 1][x] & TOP and not neighbor_vector[y][x] & TOP:
-                    neighbor_vector[y][x] += TOP
-
-        for y in range(height):
-            for x in range(1,width):
-                if neighbor_vector[y][x - 1] & LEFT and not neighbor_vector[y][x] & LEFT:
-                    neighbor_vector[y][x] += LEFT
-
-        inverse_neighbor_vector = neighbor_vector.copy()
-        inverse_neighbor_vector.reverse()
-        for x in range(len(inverse_neighbor_vector)):
-            inverse_neighbor_vector[x].reverse()
-
-
-
-        for y in range(-height, 0):
-            for x in range(width):
-                if neighbor_vector[(-y) - 1][x] & BOTTOM and not neighbor_vector[y][x] & BOTTOM:
-                    neighbor_vector[-y][x] += BOTTOM
-
-        for y in range(height):
-            for x in range(1,width):
-                if neighbor_vector[y][x - 1] & RIGHT and not neighbor_vector[y][x] & RIGHT:
-                    neighbor_vector[y][x] += RIGHT
-
-        for y in range(len(neighbor_vector)):
-            inverse_neighbor_vector[y].reverse()
-        inverse_neighbor_vector.reverse()
-        neighbor_vector = inverse_neighbor_vector
-
+        update_matrix_in_direction(neighbor_vector, LEFT)
+        print("\n", neighbor_vector)
+        update_matrix_in_direction(neighbor_vector, RIGHT)
+        print("\n", neighbor_vector)
 
 
         for y in range(height):

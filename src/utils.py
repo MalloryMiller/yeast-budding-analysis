@@ -36,25 +36,42 @@ POSN_ADJUSTMENT = {
         #BOTTOMLEFT : [-1, 1], 
         #TOPRIGHT : [1, -1], 
         #TOPLEFT : [-1, -1], 
-        RIGHT : [1, 0], 
-        LEFT : [-1, 0], 
-        BOTTOM : [0, 1], 
-        TOP : [0, -1], 
+        LEFT : [1, 0], 
+        RIGHT : [-1, 0], 
+        BOTTOM : [0, -1], 
+        TOP : [0, 1], 
 }
 
 
 def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False):
         ys = list(range(len(matrix)))
         xs = list(range(len(matrix[0])))
+        y_max = ys[-1]
+        x_max = xs[-1]
         
-        if POSN_ADJUSTMENT[direction][0] > 0:
-            xs.reverse()
-        if POSN_ADJUSTMENT[direction][1] > 0:
-            ys.reverse()
 
+        if POSN_ADJUSTMENT[direction][0] < 0:
+            xs.reverse()
+            xs.pop(0)
+        elif POSN_ADJUSTMENT[direction][0] != 0:
+            xs.pop()
+
+        if POSN_ADJUSTMENT[direction][1] < 0:
+            ys.reverse()
+            ys.pop(0)
+        elif POSN_ADJUSTMENT[direction][1] != 0:
+            ys.pop()
+            
+
+        print(xs, ys)
         for y in ys:
             for x in xs:
-                if matrix[y - abs(POSN_ADJUSTMENT[direction][1])][x - abs(POSN_ADJUSTMENT[direction][0])] & direction and \
+                x_other = x - POSN_ADJUSTMENT[direction][0]
+                y_other = y - POSN_ADJUSTMENT[direction][1]
+                if x_other < 0 or x_other > x_max or y_other < 0 or y_other > y_max:
+                    continue
+                
+                if matrix[y_other][x_other] & direction and \
                     not matrix[y][x] & direction:
                     matrix[y][x] += direction
 
@@ -67,7 +84,7 @@ def is_surrounded(score):
             sides += 1
             score -= s
 
-    return sides > len(SIDES_FOR_SURROUNDED) // 2
+    return sides > len(SIDES_FOR_SURROUNDED) / 2
      
 
 def insufficiently_round(area, width, height):
