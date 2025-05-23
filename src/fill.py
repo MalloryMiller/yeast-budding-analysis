@@ -158,14 +158,9 @@ class Analyzer:
             neighbor_vector[c[1] - top][c[0] - left] = ORIGINAL
 
         print("\n\n\n", neighbor_vector)
-        update_matrix_in_direction(neighbor_vector, TOP)
-        print("\n", neighbor_vector)
-        update_matrix_in_direction(neighbor_vector, BOTTOM)
-        print("\n", neighbor_vector)
 
-        update_matrix_in_direction(neighbor_vector, LEFT)
-        print("\n", neighbor_vector)
-        update_matrix_in_direction(neighbor_vector, RIGHT)
+        for dr in SIDES_FOR_SURROUNDED:
+            update_matrix_in_direction(neighbor_vector, dr)
         print("\n", neighbor_vector)
 
 

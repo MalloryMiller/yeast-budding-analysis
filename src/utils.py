@@ -16,10 +16,10 @@ BOTTOMRIGHT = 128
 
 
 SIDES_FOR_SURROUNDED = [ # must be in descending order.
-        #BOTTOMRIGHT, 
-        #BOTTOMLEFT, 
-        #TOPRIGHT, 
-        #TOPLEFT, 
+        BOTTOMRIGHT, 
+        BOTTOMLEFT, 
+        TOPRIGHT, 
+        TOPLEFT, 
         RIGHT, 
         LEFT, 
         BOTTOM, 
@@ -32,10 +32,10 @@ ORIGINAL = sum(SIDES_FOR_SURROUNDED) + 256
 
 
 POSN_ADJUSTMENT = {
-        #BOTTOMRIGHT : [1, 1], 
-        #BOTTOMLEFT : [-1, 1], 
-        #TOPRIGHT : [1, -1], 
-        #TOPLEFT : [-1, -1], 
+        BOTTOMRIGHT : [-1, -1], 
+        BOTTOMLEFT : [1, -1], 
+        TOPRIGHT : [-1, 1], 
+        TOPLEFT : [1, 1], 
         LEFT : [1, 0], 
         RIGHT : [-1, 0], 
         BOTTOM : [0, -1], 
