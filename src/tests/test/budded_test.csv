@@ -1,3 +1,3 @@
-Total Area (px),Total Area (μm²),Yeast 1 Anchor Coordinate,Yeast 1 Area (px),Yeast 1 Area (μm²),Yeast 2 Anchor Coordinate,Yeast 2 Area (px),Yeast 2 Area (μm²)
-250,16.436554898093355,[158 48],81,5.325443786982247,[157 62],169,11.111111111111109,
-55,3.616042077580538,[134 168],24,1.5779092702169621,[133 176],31,2.038132807363576,
+Total Area (px),Total Area (μm²),Yeast 1 ID,Yeast 1 Anchor Coordinate,Yeast 1 Area (px),Yeast 1 Area (μm²),Yeast 2 ID,Yeast 2 Anchor Coordinate,Yeast 2 Area (px),Yeast 2 Area (μm²)
+422,27.744904667981583,0,[23 13],158,10.387902695595,1,[31 26],264,17.357001972386584,
+291,19.132149901380664,3,[157 48],94,6.180144641683102,4,[156 61],197,12.952005259697565,

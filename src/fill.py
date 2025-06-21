@@ -1,7 +1,7 @@
 
 from utils import *
 from numpy import abs
-import heapq
+from PIL import ImageDraw
 
 
 
@@ -15,6 +15,18 @@ class Analyzer:
 
         self.x = 0
         self.y = 0
+
+
+    def label_img(self, img):
+        draw = ImageDraw.Draw(img)
+        
+        for s in self.ym.regular:
+            draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+        for b in self.ym.budded:
+            for s in b.yeast:
+                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+
+        
         
 
     def move_cursor(self, target_color, x_start, y_start, x_end, y_end, reset_lines = False):
@@ -78,30 +90,20 @@ class Analyzer:
     
 
 
-    def add_area(self, content):
+    def add_region(self, region):
         '''
         Adds the area to the record as the appropriate kind of yeast based on
         the nature of its content
         '''
-        r_type = Yeast
-        if len(content) == 1:
-            self.ym.add_regular(Yeast(self.x, self.y, len(content[0])))
 
-        if len(content) == 2:
-            r_type = BuddedYeast
-            yeast1 = Yeast(self.x, self.y, len(content[0]))
-            yeast2 = Yeast(content[1][0][0], content[1][0][1], len(content[1]))
-            self.ym.add_budded(BuddedYeast(self.x, self.y, yeast1, yeast2))
+        divots = []
+        for r in region:
+            if len(r) > 0:
+                divots.append(self.count_divots(0, r[0][0], r[0][1]))
+            else:
+                divots.append([])
 
-        if len(content) > 2:
-            r_type = ClusteredYeast
-            yeasts = []
-            for yeast in content:
-                y = Yeast(yeast[0][0], yeast[0][1], len(yeast))
-                yeasts.append(y)
-            self.ym.add_cluster(ClusteredYeast(self.x, self.y, yeasts))
-
-        return r_type
+        return self.ym.add_region(region, self.x, self.y, divots)
     
 
     def Q_pixel(self, x, y, Q, validate_color):
@@ -120,7 +122,158 @@ class Analyzer:
                 Q.append((x, y))
             
 
-    def Q_around(self, x, y, Q, validate_color, corners=False):
+
+    
+    def count_divots(self, r, x, y):
+
+        done = []
+
+        clockwise = []
+        counterc = []
+
+        cur = [x,y]
+        a = 0
+
+        while list(cur) != [x, y]:
+            qit = False
+            for p in done:
+                if cur[0] == p[0] and cur[1] == p[1]:
+                    qit = True
+                    break
+            if qit:
+                break
+
+            cur = self.next_outline(cur[0], cur[1])
+            if cur == "INCOMPLETE":
+                return [0] # odd number, marks as malformed since by edge
+            
+            a += 1
+            if cur[1] == "cw":
+                cur = cur[0][0], cur[0][1]
+                clockwise.append(cur)
+            elif cur[1] == "cc":
+                cur = cur[0][0], cur[0][1]
+                counterc.append(cur)
+
+            done.append(cur)
+
+
+
+        '''
+        the cells border was either traversed clockwise or counterclockwise.
+        We're only interested in changes that don't fall in the standard circular path.
+        '''
+        if (counterc and not clockwise) or (clockwise and not counterc):
+            return []
+        
+        if clockwise and counterc:
+            if len(clockwise) > len(counterc):
+                return counterc
+            elif len(clockwise) == len(counterc): # this should never happen, if it does its bad data
+                return counterc + clockwise
+            else:
+                return clockwise
+
+        return []
+    
+
+
+    def next_outline(self, x, y, inner_color = colorKey['New'], outer_color = colorKey[Background]):
+
+        try:
+            r = self.img.getpixel(get_adj([x, y], RIGHT))
+            tr = self.img.getpixel(get_adj([x, y], TOPRIGHT))
+            br = self.img.getpixel(get_adj([x, y], BOTTOMRIGHT))
+
+            b = self.img.getpixel(get_adj([x, y], BOTTOM))
+            t = self.img.getpixel(get_adj([x, y], TOP))
+
+            l = self.img.getpixel(get_adj([x, y], LEFT))
+            bl = self.img.getpixel(get_adj([x, y], BOTTOMLEFT))
+            tl = self.img.getpixel(get_adj([x, y], TOPLEFT))
+        except IndexError:
+            return "INCOMPLETE"
+        
+
+        direction = 'cw'
+        value = [x, y]
+        
+        
+
+        if r == inner_color and tr == outer_color:
+            value = get_adj([x, y], RIGHT)
+        
+        elif br == inner_color and r == outer_color:
+            value = get_adj([x, y], BOTTOMRIGHT)
+        
+        elif b == inner_color and br == outer_color:
+            value = get_adj([x, y], BOTTOM)
+    
+        elif bl == inner_color and b == outer_color:
+            value = get_adj([x, y], BOTTOMLEFT)
+    
+        elif l == inner_color and bl == outer_color:
+            value = get_adj([x, y], LEFT)
+        
+        elif tl == inner_color and l == outer_color:
+            value = get_adj([x, y], TOPLEFT)
+        
+        elif t == inner_color and tl == outer_color:
+            value = get_adj([x, y], TOP)
+        
+        elif tr == inner_color and t == outer_color:
+            value = get_adj([x, y], TOPRIGHT)
+
+
+
+
+
+        elif r == inner_color and br == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], RIGHT)
+        
+        elif br == inner_color and b == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], BOTTOMRIGHT)
+        
+        elif b == inner_color and bl == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], BOTTOM)
+    
+        elif bl == inner_color and l == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], BOTTOMLEFT)
+    
+        elif l == inner_color and tl == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], LEFT)
+        
+        elif tl == inner_color and t == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], TOPLEFT)
+        
+        elif t == inner_color and tr == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], TOP)
+        
+        elif tr == inner_color and r == outer_color:
+            direction = 'cc'
+            value = get_adj([x, y], TOPRIGHT)
+        
+
+        print(f'''
+{tl}, {t}, {tr}
+{l}, --, {r}
+{bl}, {b}, {br}
+              ''')
+        
+        return value, direction
+
+
+
+
+
+    def Q_around(self, x, y, Q, validate_color, corners=False, left=True):
         '''
         Queues the four pixles around the given coordinate (x, y) in Q for a 
         flood filling affect.
@@ -157,11 +310,9 @@ class Analyzer:
         for c in current:
             neighbor_vector[c[1] - top][c[0] - left] = ORIGINAL
 
-        print("\n\n\n", neighbor_vector)
 
         for dr in SIDES_FOR_SURROUNDED:
             update_matrix_in_direction(neighbor_vector, dr)
-        print("\n", neighbor_vector)
 
 
         for y in range(height):
@@ -184,6 +335,8 @@ class Analyzer:
         left = x
         right = x
 
+        include = True
+
         while Q:
             cur = Q.pop(0)
             color = self.img.getpixel((cur[0], cur[1]))
@@ -191,7 +344,7 @@ class Analyzer:
                 continue
 
             data = self.img.load()
-            data[cur[0], cur[1]] = colorKey['Added']
+            data[cur[0], cur[1]] = colorKey[Background]
 
             if cur[0] > right:
                 right = cur[0]
@@ -205,12 +358,23 @@ class Analyzer:
 
             if abs(color[0] - starting_color) == 0:
                 current.append(cur)
-
+                if cur[0] < 2 or cur[1] < 2 or cur[0] > self.width-2 or cur[1] == self.length-2:
+                    include = False
                 Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
 
-        current.extend(self.cascade_fill(x, y, current, top, bottom, right, left))
+        
+        fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
+        current.extend(fill_section)
+        # corners get messy if a line moves diagonally, double run through catches those cases.
+        fill_section2 = self.cascade_fill(x, y, current, top, bottom, right, left) 
+        current.extend(fill_section2)
 
-        return bottom - top, right - left
+        self.flood_fill(current, colorKey[Background])
+        
+
+        
+
+        return bottom - top, right - left, include
 
 
 
@@ -227,7 +391,7 @@ class Analyzer:
         widths = []
         lengths = []
     
-        width, length = self.get_one_area(x, y, current)
+        width, length, validity = self.get_one_area(x, y, current)
         widths.append(width)
         lengths.append(length)
         areas.append(current)
@@ -242,10 +406,11 @@ class Analyzer:
                 continue
             
             if self.img.getpixel((cur[0], cur[1])) == colorKey['New']:
-                new_areas, new_widths, new_lengths = self.get_region(cur[0], cur[1])
+                new_areas, new_widths, new_lengths, new_validity = self.get_region(cur[0], cur[1])
                 areas.extend(new_areas)
                 widths.extend(new_widths)
                 lengths.extend(new_lengths)
+                validity = new_validity and validity
 
             else:
                 new_points = self.Q_around(cur[0], cur[1], [], 
@@ -254,7 +419,8 @@ class Analyzer:
                     Q.append(list(x), cur[2] + 1)
 
 
-        return areas, widths, lengths
+        return areas, widths, lengths, validity
+    
 
 
 
@@ -264,27 +430,38 @@ class Analyzer:
         all potential cell regions (areas of self.img with color colorKey['New'])
         '''
 
+
         while self.next_item():
 
-            to_change, heights, widths = self.get_region(self.x, self.y) 
+            to_change, heights, widths, validity = self.get_region(self.x, self.y) 
             should_ignore = not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
             should_ignore = []
+
             
-            for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
-                if insufficiently_round(len(to_change[area]), heights[area], widths[area]) or \
-                    len(to_change[area]) < IGNORE_ALL_SIZE:
-                    should_ignore.append(area)
-                    break
+            if not validity:
+                for x in range(len(to_change)):
+                    should_ignore.append(x)
+                
+            else:
+                for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
+                    if insufficiently_round(len(to_change[area]), heights[area], widths[area]) or \
+                        len(to_change[area]) < IGNORE_ALL_SIZE:
+                        should_ignore.append(area)
+                        break
+
+                if to_change: # if not all of them were ignored add what's left
+                    for area in to_change:
+                        self.flood_fill(area, colorKey['New']) 
+
+                    region_type = self.add_region(to_change)
+
+                    for area in to_change:
+                        self.flood_fill(area, colorKey[region_type]) 
 
             should_ignore.reverse()
             for area in should_ignore:
                     self.flood_fill(to_change.pop(area), colorKey['Ignored']) #colors and removes areas for removal
                     
-
-            if to_change: # if not all of them were ignored add what's left
-                region_type = self.add_area(to_change)
-                for area in to_change:
-                    self.flood_fill(area, colorKey[region_type]) 
 
 

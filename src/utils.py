@@ -43,6 +43,14 @@ POSN_ADJUSTMENT = {
 }
 
 
+def get_adj(posn, dir):
+    print(posn, POSN_ADJUSTMENT[dir][0])
+    return [
+        posn[0] + POSN_ADJUSTMENT[dir][0], 
+        posn[1] + POSN_ADJUSTMENT[dir][1]
+        ]
+
+
 def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False):
         ys = list(range(len(matrix)))
         xs = list(range(len(matrix[0])))
@@ -62,8 +70,6 @@ def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False
         elif POSN_ADJUSTMENT[direction][1] != 0:
             ys.pop()
             
-
-        print(xs, ys)
         for y in ys:
             for x in xs:
                 x_other = x - POSN_ADJUSTMENT[direction][0]
@@ -84,8 +90,9 @@ def is_surrounded(score):
             sides += 1
             score -= s
 
-    return sides > len(SIDES_FOR_SURROUNDED) / 2
+    return sides > 5 #len(SIDES_FOR_SURROUNDED) / 1.5 # MORE than half of the evaluated sides were surrounded
      
+
 
 def insufficiently_round(area, width, height):
     '''
@@ -105,7 +112,7 @@ def insufficiently_round(area, width, height):
     return False
 
 
-def filter_out_grays(img):
+def filter_out_grays(img, thresh = THRESHOLD):
     '''
     Eliminates all gray values such that only the colors
     colorKey[Background] and colorKey['New'] are in the image
@@ -114,7 +121,7 @@ def filter_out_grays(img):
 
     for x in range(img.size[0]):
         for y in range(img.size[1]):
-            if img.getpixel((x, y))[0] > THRESHOLD:
+            if img.getpixel((x, y))[0] < thresh:
                 data[x, y] = colorKey[Background]
             else:
                 data[x, y] = colorKey['New']

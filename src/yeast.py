@@ -1,5 +1,5 @@
 
-
+yeast_count = [0]
 
 class Region:
     def __init__(self, x, y):
@@ -21,6 +21,8 @@ class Yeast(Region):
     def __init__(self, x, y, area):
         super().__init__(x, y)
         self.area = area
+        self.id = yeast_count[0]
+        yeast_count[0] += 1
         self.yeast_manager = None
     
     def get_area(self):
@@ -30,7 +32,7 @@ class Yeast(Region):
         per_unit = ""
         if self.yeast_manager != None:
             per_unit =  "," + str(self.area * (self.yeast_manager.unit_per_pixel ** 2))
-        return super().__str__() + "," + str(self.area) + per_unit
+        return str(self.id) + "," + super().__str__() + "," + str(self.area) + per_unit
 
 
 
@@ -56,10 +58,10 @@ class BuddedYeast(Yeast):
 
 
 
-class ClusteredYeast(Yeast):
+class IgnoredYeast(Region):
     def __init__(self, x, y, yeasts):
         self.yeast = yeasts
-        super().__init__(x, y, sum(y.get_area() for y in self.yeast))
+        super().__init__(x, y)
 
 
     def get_all_areas(self):
@@ -90,6 +92,57 @@ class YeastManager:
         self.cluster_count = 0
 
 
+    
+
+    def divide_areas(self, img, r, p1, p2):
+        return []
+
+
+    def add_region(self, regions, x, y, divots):
+
+        yeasts = []
+        r_type = Yeast
+
+
+        i = 0
+        for r in regions:
+            if len(r) == 0:
+                break
+                
+            divots_c = len(divots[i])
+            if divots_c % 2 != 0: # uneven number of divots? malformed
+                r_type = IgnoredYeast
+                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+
+            elif divots_c == 0: # single cell :>
+                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+
+            elif divots_c == 2: # two cells pinched at the divide
+                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+                yeasts.append(Yeast(r[1][0], r[1][1], len(r)))
+
+            elif divots_c > 2 or divots_c < 1: #weird nonsense or more than 2 cells
+                r_type = IgnoredYeast
+                print(len(r))
+                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+            i += 1
+
+
+        if len(yeasts) == 1 and r_type != IgnoredYeast:
+            self.add_regular(yeasts[0])
+            return Yeast
+        
+        elif len(yeasts) == 2 and r_type != IgnoredYeast:
+            self.add_budded(BuddedYeast(x, y, yeasts[0], yeasts[1]))
+            return BuddedYeast
+        
+        elif len(yeasts) > 2 or r_type == IgnoredYeast:
+            self.add_cluster(IgnoredYeast(x, y, yeasts))
+
+        return IgnoredYeast
+
+
+
     def add_regular(self, yeast : Yeast):
         yeast.yeast_manager = self
         self.regular.append(yeast)
@@ -102,7 +155,7 @@ class YeastManager:
         self.budded.append(budded)
         self.budded_count += 1
 
-    def add_cluster(self, cluster : ClusteredYeast):
+    def add_cluster(self, cluster : IgnoredYeast):
         self.cluster.append(cluster)
         self.cluster_count += 1
 
@@ -131,7 +184,7 @@ class YeastManager:
         '''
         Generates csv files for regular yeast areas
         '''
-        header = "Anchor Coordinate,Area (px),Area (" + self.units + "²)"
+        header = "Yeast ID,Anchor Coordinate,Area (px),Area (" + self.units + "²)"
         self.generate_output("regular_" + self.name, header, self.regular)
 
 
@@ -140,7 +193,7 @@ class YeastManager:
         '''
         Generates csv files for budded yeast areas
         '''
-        header = "Total Area (px),Total Area (" + self.units + "²),Yeast 1 Anchor Coordinate,Yeast 1 Area (px),Yeast 1 Area (" + self.units + "²),Yeast 2 Anchor Coordinate,Yeast 2 Area (px),Yeast 2 Area (" + self.units + "²)"
+        header = "Total Area (px),Total Area (" + self.units + "²),Yeast 1 ID,Yeast 1 Anchor Coordinate,Yeast 1 Area (px),Yeast 1 Area (" + self.units + "²),Yeast 2 ID,Yeast 2 Anchor Coordinate,Yeast 2 Area (px),Yeast 2 Area (" + self.units + "²)"
         self.generate_output("budded_" + self.name, header, self.budded)
 
 

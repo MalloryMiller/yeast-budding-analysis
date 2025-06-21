@@ -7,7 +7,7 @@ colorKey = { # values can be changed but MUST be distinct
     'Ignored':(0,255,255),
     Yeast: (255, 200, 200),
     BuddedYeast: (200, 255, 200),
-    ClusteredYeast: (200, 200, 255),
+    IgnoredYeast: (200, 200, 255),
 
     'New': (0, 0, 0),
     'Added': (100, 100, 100),
@@ -19,6 +19,10 @@ UNIT_PER_PIXEL = 20/78 # reference scale of 20 micrometers that is 78 pixels lon
 UNITS = "μm"
 
 THRESHOLD = 5 # in grayscale space 0-255
+
+
+THRESHOLD2 = 250 # in grayscale space 0-255
+THRESHOLD1 = 125 # in grayscale space 0-255
 
 IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
 IGNORE_ALL_SIZE = 20
