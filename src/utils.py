@@ -81,7 +81,7 @@ def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False
                     not matrix[y][x] & direction:
                     matrix[y][x] += direction
 
-def is_surrounded(score):
+def is_surrounded(score, needed_sides = 5):
     
     sides = 0
 
@@ -90,7 +90,7 @@ def is_surrounded(score):
             sides += 1
             score -= s
 
-    return sides > 5 #len(SIDES_FOR_SURROUNDED) / 1.5 # MORE than half of the evaluated sides were surrounded
+    return sides > needed_sides #len(SIDES_FOR_SURROUNDED) / 1.5 # MORE than half of the evaluated sides were surrounded
      
 
 

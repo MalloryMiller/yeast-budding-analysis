@@ -4,14 +4,18 @@ from yeast import *
 
 colorKey = { # values can be changed but MUST be distinct
     Background: (255, 255, 255),
-    'Ignored':(0,255,255),
+    'Ignored':(255,255,255),
+
     Yeast: (255, 200, 200),
     BuddedYeast: (200, 255, 200),
+    'BuddedYeast2': (200, 255, 242),
     IgnoredYeast: (200, 200, 255),
 
     'New': (0, 0, 0),
     'Added': (100, 100, 100),
     'Old': (200, 200, 200),
+
+    'Divot': (200, 200, 100)
 }
 
 
@@ -21,8 +25,8 @@ UNITS = "μm"
 THRESHOLD = 5 # in grayscale space 0-255
 
 
-THRESHOLD2 = 250 # in grayscale space 0-255
-THRESHOLD1 = 125 # in grayscale space 0-255
+THRESHOLD2 = 254 # in grayscale space 0-255
+THRESHOLD1 = 100 # in grayscale space 0-255
 
 IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
 IGNORE_ALL_SIZE = 20

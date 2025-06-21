@@ -83,8 +83,9 @@ class Analyzer:
         the given color
         '''
 
+
         data = self.img.load()
-        for x in to_change:
+        for i, x in enumerate(to_change):
             data[x[0], x[1]] = color
         return
     
@@ -102,6 +103,7 @@ class Analyzer:
                 divots.append(self.count_divots(0, r[0][0], r[0][1]))
             else:
                 divots.append([])
+
 
         return self.ym.add_region(region, self.x, self.y, divots)
     
@@ -131,7 +133,7 @@ class Analyzer:
         clockwise = []
         counterc = []
 
-        cur = [x,y]
+        cur = [x, y]
         a = 0
 
         while list(cur) != [x, y]:
@@ -292,7 +294,7 @@ class Analyzer:
         return Q
 
 
-    def cascade_fill(self, x, y, current, top, bottom, right, left):
+    def cascade_fill(self, x, y, current, top, bottom, right, left, surrounded_by = 5):
         to_add = []
         neighbor_vector = []
         width = right - left + 2
@@ -318,7 +320,7 @@ class Analyzer:
         for y in range(height):
             for x in range(width):
 
-                if is_surrounded(neighbor_vector[y][x]) and neighbor_vector[y][x] != ORIGINAL and \
+                if is_surrounded(neighbor_vector[y][x], surrounded_by) and neighbor_vector[y][x] != ORIGINAL and \
                     x + left > 0 and y + right > 0 and \
                         x + left < self.img.size[0] and y + right < self.img.size[0]:
                     to_add.append([x + left, y + top])
@@ -336,41 +338,49 @@ class Analyzer:
         right = x
 
         include = True
-
         while Q:
-            cur = Q.pop(0)
-            color = self.img.getpixel((cur[0], cur[1]))
-            if sum(color) != 0:
-                continue
+            while Q:
+                cur = Q.pop(0)
+                color = self.img.getpixel((cur[0], cur[1]))
+                if sum(color) != 0:
+                    continue
 
-            data = self.img.load()
-            data[cur[0], cur[1]] = colorKey[Background]
+                data = self.img.load()
+                data[cur[0], cur[1]] = colorKey[Background]
 
-            if cur[0] > right:
-                right = cur[0]
-            if cur[0] < left:
-                left = cur[0]
-            if cur[1] > bottom:
-                bottom = cur[1]
-            if cur[1] < top:
-                top = cur[1]
+                if cur[0] > right:
+                    right = cur[0]
+                if cur[0] < left:
+                    left = cur[0]
+                if cur[1] > bottom:
+                    bottom = cur[1]
+                if cur[1] < top:
+                    top = cur[1]
 
 
-            if abs(color[0] - starting_color) == 0:
-                current.append(cur)
-                if cur[0] < 2 or cur[1] < 2 or cur[0] > self.width-2 or cur[1] == self.length-2:
-                    include = False
-                Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
+                if abs(color[0] - starting_color) == 0:
+                    current.append(cur)
+                    if cur[0] < MAX_BUDDING_DISTANCE or cur[1] < MAX_BUDDING_DISTANCE or \
+                        cur[0] > self.width-MAX_BUDDING_DISTANCE or cur[1] == self.length-MAX_BUDDING_DISTANCE:
+                        include = False # too close to edge of image, not valid cell
 
-        
-        fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
-        current.extend(fill_section)
-        # corners get messy if a line moves diagonally, double run through catches those cases.
-        fill_section2 = self.cascade_fill(x, y, current, top, bottom, right, left) 
-        current.extend(fill_section2)
+                    Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
 
-        self.flood_fill(current, colorKey[Background])
-        
+            
+            fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
+            current.extend(fill_section)
+            # corners get messy if a line moves diagonally, double run through catches those cases.
+            fill_section2 = self.cascade_fill(x, y, current, top, bottom, right, left) 
+            current.extend(fill_section2)
+            fill_section.extend(fill_section2)
+
+            divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
+
+            self.flood_fill(current, colorKey[Background])
+            for new in fill_section:
+                    Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
+
+            self.flood_fill(divots, colorKey['Divot'])
 
         
 
@@ -456,8 +466,11 @@ class Analyzer:
 
                     region_type = self.add_region(to_change)
 
-                    for area in to_change:
-                        self.flood_fill(area, colorKey[region_type]) 
+                    for i, area in enumerate(to_change):
+                        color = region_type
+                        if region_type == BuddedYeast and i == 1:
+                            color = 'BuddedYeast2'
+                        self.flood_fill(area, colorKey[color]) 
 
             should_ignore.reverse()
             for area in should_ignore:
