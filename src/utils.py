@@ -51,7 +51,7 @@ def get_adj(posn, dir):
         ]
 
 
-def update_matrix_in_direction(matrix, direction, reversex=False, reversey=False):
+def update_matrix_in_direction(matrix, direction):
         ys = list(range(len(matrix)))
         xs = list(range(len(matrix[0])))
         y_max = ys[-1]

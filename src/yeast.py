@@ -98,7 +98,7 @@ class YeastManager:
         return []
 
 
-    def add_region(self, regions, x, y, divots):
+    def add_region(self, regions, x, y):
 
         yeasts = []
         r_type = Yeast
@@ -109,7 +109,7 @@ class YeastManager:
             if len(r) == 0:
                 break
                 
-            divots_c = len(divots[i])
+            divots_c = 0
             if divots_c % 2 != 0: # uneven number of divots? malformed
                 r_type = IgnoredYeast
                 yeasts.append(Yeast(r[0][0], r[0][1], len(r)))

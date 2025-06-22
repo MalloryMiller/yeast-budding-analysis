@@ -97,15 +97,8 @@ class Analyzer:
         the nature of its content
         '''
 
-        divots = []
-        for r in region:
-            if len(r) > 0:
-                divots.append(self.count_divots(0, r[0][0], r[0][1]))
-            else:
-                divots.append([])
 
-
-        return self.ym.add_region(region, self.x, self.y, divots)
+        return self.ym.add_region(region, self.x, self.y)
     
 
     def Q_pixel(self, x, y, Q, validate_color):
@@ -125,151 +118,6 @@ class Analyzer:
             
 
 
-    
-    def count_divots(self, r, x, y):
-
-        done = []
-
-        clockwise = []
-        counterc = []
-
-        cur = [x, y]
-        a = 0
-
-        while list(cur) != [x, y]:
-            qit = False
-            for p in done:
-                if cur[0] == p[0] and cur[1] == p[1]:
-                    qit = True
-                    break
-            if qit:
-                break
-
-            cur = self.next_outline(cur[0], cur[1])
-            if cur == "INCOMPLETE":
-                return [0] # odd number, marks as malformed since by edge
-            
-            a += 1
-            if cur[1] == "cw":
-                cur = cur[0][0], cur[0][1]
-                clockwise.append(cur)
-            elif cur[1] == "cc":
-                cur = cur[0][0], cur[0][1]
-                counterc.append(cur)
-
-            done.append(cur)
-
-
-
-        '''
-        the cells border was either traversed clockwise or counterclockwise.
-        We're only interested in changes that don't fall in the standard circular path.
-        '''
-        if (counterc and not clockwise) or (clockwise and not counterc):
-            return []
-        
-        if clockwise and counterc:
-            if len(clockwise) > len(counterc):
-                return counterc
-            elif len(clockwise) == len(counterc): # this should never happen, if it does its bad data
-                return counterc + clockwise
-            else:
-                return clockwise
-
-        return []
-    
-
-
-    def next_outline(self, x, y, inner_color = colorKey['New'], outer_color = colorKey[Background]):
-
-        try:
-            r = self.img.getpixel(get_adj([x, y], RIGHT))
-            tr = self.img.getpixel(get_adj([x, y], TOPRIGHT))
-            br = self.img.getpixel(get_adj([x, y], BOTTOMRIGHT))
-
-            b = self.img.getpixel(get_adj([x, y], BOTTOM))
-            t = self.img.getpixel(get_adj([x, y], TOP))
-
-            l = self.img.getpixel(get_adj([x, y], LEFT))
-            bl = self.img.getpixel(get_adj([x, y], BOTTOMLEFT))
-            tl = self.img.getpixel(get_adj([x, y], TOPLEFT))
-        except IndexError:
-            return "INCOMPLETE"
-        
-
-        direction = 'cw'
-        value = [x, y]
-        
-        
-
-        if r == inner_color and tr == outer_color:
-            value = get_adj([x, y], RIGHT)
-        
-        elif br == inner_color and r == outer_color:
-            value = get_adj([x, y], BOTTOMRIGHT)
-        
-        elif b == inner_color and br == outer_color:
-            value = get_adj([x, y], BOTTOM)
-    
-        elif bl == inner_color and b == outer_color:
-            value = get_adj([x, y], BOTTOMLEFT)
-    
-        elif l == inner_color and bl == outer_color:
-            value = get_adj([x, y], LEFT)
-        
-        elif tl == inner_color and l == outer_color:
-            value = get_adj([x, y], TOPLEFT)
-        
-        elif t == inner_color and tl == outer_color:
-            value = get_adj([x, y], TOP)
-        
-        elif tr == inner_color and t == outer_color:
-            value = get_adj([x, y], TOPRIGHT)
-
-
-
-
-
-        elif r == inner_color and br == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], RIGHT)
-        
-        elif br == inner_color and b == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], BOTTOMRIGHT)
-        
-        elif b == inner_color and bl == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], BOTTOM)
-    
-        elif bl == inner_color and l == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], BOTTOMLEFT)
-    
-        elif l == inner_color and tl == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], LEFT)
-        
-        elif tl == inner_color and t == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], TOPLEFT)
-        
-        elif t == inner_color and tr == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], TOP)
-        
-        elif tr == inner_color and r == outer_color:
-            direction = 'cc'
-            value = get_adj([x, y], TOPRIGHT)
-        
-
-        print(f'''
-{tl}, {t}, {tr}
-{l}, --, {r}
-{bl}, {b}, {br}
-              ''')
-        
-        return value, direction
 
 
 
@@ -448,8 +296,11 @@ class Analyzer:
 
             should_ignore = []
 
+            '''
+            Ignore all bad areas caught in this item
+            '''
             
-            if not validity:
+            if not validity: # all of areas bad, too close to edge
                 for x in range(len(to_change)):
                     should_ignore.append(x)
                 
@@ -460,21 +311,31 @@ class Analyzer:
                         should_ignore.append(area)
                         break
 
-                if to_change: # if not all of them were ignored add what's left
-                    for area in to_change:
-                        self.flood_fill(area, colorKey['New']) 
-
-                    region_type = self.add_region(to_change)
-
-                    for i, area in enumerate(to_change):
-                        color = region_type
-                        if region_type == BuddedYeast and i == 1:
-                            color = 'BuddedYeast2'
-                        self.flood_fill(area, colorKey[color]) 
-
             should_ignore.reverse()
             for area in should_ignore:
                     self.flood_fill(to_change.pop(area), colorKey['Ignored']) #colors and removes areas for removal
+
+            '''
+            Parse through remaining areas
+            '''
+
+            if to_change: # if not all of them were ignored add what's left
+                for area in to_change:
+                    self.flood_fill(area, colorKey['New']) 
+
+                    '''
+                    TODO
+                    divide each area into more areas by divots
+                    '''
+
+                region_type = self.add_region(to_change)
+
+                for i, area in enumerate(to_change):
+                    color = region_type
+                    if region_type == BuddedYeast and i == 1:
+                        color = 'BuddedYeast2'
+                    self.flood_fill(area, colorKey[color]) 
+
                     
 
 
