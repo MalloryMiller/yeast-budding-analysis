@@ -82,7 +82,7 @@ First, the issue of multiple yeast blending together because of the edge detecti
 
 The next step in categorizing a found set of areas is by filtering out any areas in the list that are too small, meaning they have a smaller pixel count than `IGNORE_ALL_SIZE` or one of the included areas was within `MAX_BUDDING_DISTANCE` of the edge of the image, meaning the reading could be incomplete or there could be another yeast outside of the frame of view that would be within budding distance.
 
-Once all areas have been as acceptable yeast to include, the array of areas can be treated as final. If there is only one area left in the array, it should be added to the single yeast list. If there are exactly two areas in the array, it is catagorized as a budded yeast and put in that list. Otherwise it is counted as a cluster and discarded.
+Once all areas have been as acceptable yeast to include, the array of areas can be treated as final. If there is only one area left in the array, it should be added to the single yeast list. If there are exactly two areas in the array, it is catagorized as a budded yeast and put in that list. Otherwise it is counted as a cluster and discarded since the parent and child of the budding cannot be determined accurately.
 
 
 
