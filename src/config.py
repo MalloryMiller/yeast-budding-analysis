@@ -34,6 +34,7 @@ IGNORE_ALL_SIZE = 20
 MAX_BUDDING_DISTANCE = 6 # in px
 REQUIRED_ROUNDNESS = .50 # in % of expected ovular area based on height and width
 
+MAX_DIVOT_DISTANCE = 2
 
 SMOOTHING = 0 # reduces accuracy, probably don't use
 CONTRAST_CUTOFF = 2

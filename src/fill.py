@@ -1,6 +1,6 @@
 
 from utils import *
-from numpy import abs
+from numpy import abs, mean
 from PIL import ImageDraw
 
 
@@ -176,7 +176,7 @@ class Analyzer:
         return to_add
 
     
-    def get_one_area(self, x, y, current):
+    def get_one_area(self, x, y, current, desired_color = lambda color: color == colorKey['New'], find_divot = True, max_dist = MAX_BUDDING_DISTANCE):
         Q = [[x, y]]
         starting_color = self.img.getpixel((x, y))[0]
 
@@ -187,10 +187,11 @@ class Analyzer:
 
         include = True
         while Q:
+
             while Q:
                 cur = Q.pop(0)
                 color = self.img.getpixel((cur[0], cur[1]))
-                if sum(color) != 0:
+                if not desired_color(color):
                     continue
 
                 data = self.img.load()
@@ -208,11 +209,11 @@ class Analyzer:
 
                 if abs(color[0] - starting_color) == 0:
                     current.append(cur)
-                    if cur[0] < MAX_BUDDING_DISTANCE or cur[1] < MAX_BUDDING_DISTANCE or \
-                        cur[0] > self.width-MAX_BUDDING_DISTANCE or cur[1] == self.length-MAX_BUDDING_DISTANCE:
+                    if cur[0] < max_dist or cur[1] < max_dist or \
+                        cur[0] > self.width-max_dist or cur[1] == self.length-max_dist:
                         include = False # too close to edge of image, not valid cell
 
-                    Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
+                    Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
 
             
             fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
@@ -222,22 +223,24 @@ class Analyzer:
             current.extend(fill_section2)
             fill_section.extend(fill_section2)
 
-            divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
+            if find_divot:
+                divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
 
             self.flood_fill(current, colorKey[Background])
             for new in fill_section:
-                    Q = self.Q_around(cur[0], cur[1], Q, lambda color : color == colorKey['New'], True)
+                    Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
 
-            self.flood_fill(divots, colorKey['Divot'])
+            if find_divot:
+                self.flood_fill(divots, colorKey['Divot'])
 
         
 
-        return bottom - top, right - left, include
+        return bottom - top, right - left, include, divots
 
 
 
 
-    def get_region(self, x, y):
+    def get_region(self, x, y, desired_color = lambda color: color == colorKey['New'], max_dist = MAX_BUDDING_DISTANCE):
         '''
         identifies the potential cell region at coordinate
         (x, y) and returns the pixels it includes, its height,
@@ -249,7 +252,7 @@ class Analyzer:
         widths = []
         lengths = []
     
-        width, length, validity = self.get_one_area(x, y, current)
+        width, length, validity, divots = self.get_one_area(x, y, current, max_dist=max_dist, desired_color=desired_color)
         widths.append(width)
         lengths.append(length)
         areas.append(current)
@@ -259,12 +262,14 @@ class Analyzer:
             Q.append(list(x), 0)
 
         while Q:
+
             cur = Q.pop(0)
-            if cur[2] > MAX_BUDDING_DISTANCE:
+            if cur[2] > max_dist:
                 continue
             
-            if self.img.getpixel((cur[0], cur[1])) == colorKey['New']:
-                new_areas, new_widths, new_lengths, new_validity = self.get_region(cur[0], cur[1])
+            if desired_color(self.img.getpixel((cur[0], cur[1]))):
+                new_areas, new_widths, new_lengths, new_validity, new_divots = self.get_region(cur[0], cur[1], desired_color=desired_color)
+                new_areas, new_widths, new_lengths, new_validity = self.divvy_by_divot(new_areas, new_widths, new_lengths, new_validity, new_divots)
                 areas.extend(new_areas)
                 widths.extend(new_widths)
                 lengths.extend(new_lengths)
@@ -272,26 +277,117 @@ class Analyzer:
 
             else:
                 new_points = self.Q_around(cur[0], cur[1], [], 
-                                           lambda color: color == colorKey['Ignored'] or color == colorKey[Background] or color == colorKey['New'])
+                                           lambda color: color != colorKey['Added'] and color != colorKey['Old'])
                 for x in new_points:
                     Q.append(list(x), cur[2] + 1)
 
 
-        return areas, widths, lengths, validity
+        return areas, widths, lengths, validity, divots
     
+
+
+    def divvy_by_divot(self, to_change, heights, widths, validity, divots):
+        '''
+        Returns the to_change area list but divided by divot if a valid output can be found, 
+        along with its validity
+        '''
+
+        if not validity or len(divots) == 0:
+            return to_change, heights, widths, validity
+        
+
+        divot_xs = []
+        divot_ys = []
+        
+        while divots:
+            cur = divots.pop()
+            new_divot, ____, ___, _, __ = self.get_region(cur[0], cur[1], desired_color=lambda color: colorKey['Divot'] == color, max_dist=MAX_DIVOT_DISTANCE)
+
+            to_add = []
+
+            for x in new_divot:
+                to_add.extend(list(x))
+
+            if not to_add:
+                continue
+
+            divot_xs.append(to_add[0][0])
+            divot_ys.append(to_add[0][1])
+
+
+
+        if len(divot_xs) == 1:
+            return to_change, heights, widths, validity # could be okay, test to see if bad
+
+        if len(divot_xs) != 2 or len(to_change) != 1:
+            return to_change, heights, widths, False # too many divots to be a divide or too many cells to be sorted into parent and bud
+        
+        
+        point1 = [int(mean(divot_xs[0])), int(mean(divot_ys[0]))]
+        point2 = [int(mean(divot_xs[1])), int(mean(divot_ys[1]))]
+
+
+        if point1[0] == point2[0]: #perfectly vertical
+            validation = lambda x, y : x > point1[0]
+        
+        else:
+            validation = lambda x, y : y > (((point2[1] - point1[1]) / (point2[0] - point1[0])) * (x - point1[0])) + point1[1]
+            
+        new_set = [[], []]
+        print(widths, heights)
+        xmaxs = [point1[0] - widths[0], point1[0] - widths[0]]
+        xmins = [point1[0] + widths[0], point1[0] + widths[0]]
+        ymaxs = [point1[1] - heights[0], point1[1] - heights[0]]
+        ymins = [point1[1] + heights[0], point1[1] + heights[0]]
+
+        for x in to_change[0]:
+            if validation(x[0], x[1]):
+                new_set[0].append(x)
+
+                if x[0] > xmaxs[0]:
+                    xmaxs[0] = x[0]
+                if x[0] < xmins[0]:
+                    xmins[0] = x[0]
+
+                if x[1] > ymaxs[0]:
+                    ymaxs[0] = x[1]
+                if x[1] < xmins[0]:
+                    ymins[0] = x[1]
+            else:
+                new_set[1].append(x)
+
+                if x[0] > xmaxs[1]:
+                    xmaxs[1] = x[0]
+                if x[0] < xmins[1]:
+                    xmins[1] = x[0]
+
+                if x[1] > ymaxs[1]:
+                    ymaxs[1] = x[1]
+                if x[1] < xmins[1]:
+                    ymins[1] = x[1]
+
+        print(len(new_set[0]), len(new_set[1]))
+        new_set = list(filter(lambda set : len(set) > 0, new_set))
+
+        heights = [ymaxs[0] - ymins[0], ymaxs[1] - ymins[1]]
+        widths = [xmaxs[0] - xmins[0], xmaxs[1] - xmins[1]]
+
+        return new_set, heights, widths, validity
 
 
 
     def analyze(self):
         '''
-        identifies, colors, and records
-        all potential cell regions (areas of self.img with color colorKey['New'])
+        identifies, colors, and records all potential cell regions 
+        (areas of self.img with color colorKey['New'])
         '''
 
-
         while self.next_item():
-
-            to_change, heights, widths, validity = self.get_region(self.x, self.y) 
+            
+            to_change, heights, widths, validity, divots = self.get_region(self.x, self.y) 
+            to_change, heights, widths, validity = self.divvy_by_divot(to_change, heights, widths, validity, divots)
+            self.flood_fill(divots, colorKey['Divot'])
+            
             should_ignore = not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
             should_ignore = []
@@ -303,17 +399,18 @@ class Analyzer:
             if not validity: # all of areas bad, too close to edge
                 for x in range(len(to_change)):
                     should_ignore.append(x)
-                
+            '''
             else:
                 for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
                     if insufficiently_round(len(to_change[area]), heights[area], widths[area]) or \
                         len(to_change[area]) < IGNORE_ALL_SIZE:
                         should_ignore.append(area)
                         break
+            '''
 
             should_ignore.reverse()
             for area in should_ignore:
-                    self.flood_fill(to_change.pop(area), colorKey['Ignored']) #colors and removes areas for removal
+                    self.flood_fill(to_change.pop(area), colorKey[IgnoredYeast]) #colors and removes areas for removal
 
             '''
             Parse through remaining areas
@@ -322,11 +419,6 @@ class Analyzer:
             if to_change: # if not all of them were ignored add what's left
                 for area in to_change:
                     self.flood_fill(area, colorKey['New']) 
-
-                    '''
-                    TODO
-                    divide each area into more areas by divots
-                    '''
 
                 region_type = self.add_region(to_change)
 
