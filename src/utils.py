@@ -101,6 +101,7 @@ def insufficiently_round(area, width, height):
     to be considered round based on the REQUIRED_ROUNDNESS.
     Returns False otherwise
     '''
+    return False
 
     expected_area = (pi * (abs(width) / 2) * (abs(height) / 2)) #pi * r * r
 

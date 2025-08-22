@@ -21,13 +21,13 @@ class Analyzer:
         draw = ImageDraw.Draw(img)
         
         for s in self.ym.regular:
-            draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+            draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
         for b in self.ym.budded:
             for s in b.yeast:
-                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
         for b in self.ym.cluster:
             for s in b.yeast:
-                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
 
         
         
@@ -234,7 +234,7 @@ class Analyzer:
                     Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
 
             if find_divot:
-                self.flood_fill(divots, colorKey['Divot'])
+                self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
 
         
 

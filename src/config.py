@@ -33,7 +33,7 @@ IGNORE_ALL_SIZE = 20
 
 MAX_BUDDING_DISTANCE = 6 # in px
 MAX_ROUNDNESS = 1 # in % of expected ovular area based on height and width
-ROUNDNESS_FORGIVENESS = .5 #MAX_ROUNDNESS will be +/- this
+ROUNDNESS_FORGIVENESS = 3 #MAX_ROUNDNESS will be +/- this
 
 
 MAX_DIVOT_DISTANCE = 4
