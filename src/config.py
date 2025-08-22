@@ -32,9 +32,12 @@ IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
 IGNORE_ALL_SIZE = 20
 
 MAX_BUDDING_DISTANCE = 6 # in px
-REQUIRED_ROUNDNESS = .50 # in % of expected ovular area based on height and width
+MAX_ROUNDNESS = 1 # in % of expected ovular area based on height and width
+ROUNDNESS_FORGIVENESS = .5 #MAX_ROUNDNESS will be +/- this
 
-MAX_DIVOT_DISTANCE = 2
+
+MAX_DIVOT_DISTANCE = 4
+DIVOT_MIN_SIZE = 3
 
 SMOOTHING = 0 # reduces accuracy, probably don't use
 CONTRAST_CUTOFF = 2

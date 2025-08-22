@@ -25,6 +25,9 @@ class Analyzer:
         for b in self.ym.budded:
             for s in b.yeast:
                 draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
+        for b in self.ym.cluster:
+            for s in b.yeast:
+                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255))
 
         
         
@@ -91,14 +94,12 @@ class Analyzer:
     
 
 
-    def add_region(self, region):
+    def add_region(self, region, max_ys, min_xs, min_ys, max_xs, type_override = False):
         '''
         Adds the area to the record as the appropriate kind of yeast based on
         the nature of its content
         '''
-
-
-        return self.ym.add_region(region, self.x, self.y)
+        return self.ym.add_region(region, max_ys, min_xs, min_ys, max_xs, type_override)
     
 
     def Q_pixel(self, x, y, Q, validate_color):
@@ -168,9 +169,11 @@ class Analyzer:
         for y in range(height):
             for x in range(width):
 
-                if is_surrounded(neighbor_vector[y][x], surrounded_by) and neighbor_vector[y][x] != ORIGINAL and \
-                    x + left > 0 and y + right > 0 and \
-                        x + left < self.img.size[0] and y + right < self.img.size[0]:
+                if is_surrounded(neighbor_vector[y][x], surrounded_by) \
+                    and neighbor_vector[y][x] != ORIGINAL \
+                    and x + left > 0 and y + right > 0 \
+                    and x + left < self.img.size[0] and y + right < self.img.size[0]:
+                    
                     to_add.append([x + left, y + top])
         
         return to_add
@@ -235,7 +238,7 @@ class Analyzer:
 
         
 
-        return bottom - top, right - left, include, divots
+        return right, left, bottom, top, include, divots
 
 
 
@@ -249,13 +252,21 @@ class Analyzer:
 
         areas = []
         current = []
-        widths = []
-        lengths = []
+        max_xs = []
+        min_xs = []
+        max_ys = []
+        min_ys = []
     
-        width, length, validity, divots = self.get_one_area(x, y, current, max_dist=max_dist, desired_color=desired_color)
-        widths.append(width)
-        lengths.append(length)
+        maxx, minx, maxy, miny, validity, divots = self.get_one_area(x, y, current, max_dist=max_dist, desired_color=desired_color)
+        
+        max_xs.append(maxx)
+        min_xs.append(minx)
+        max_ys.append(maxy)
+        min_ys.append(miny)
         areas.append(current)
+
+        areas, max_ys, min_xs, min_ys, max_xs, validity = self.divvy_by_divot(areas, max_ys, min_xs, min_ys, max_xs, validity, divots)
+        
 
         Q = WeightedSetQueue()
         for x in current:
@@ -263,16 +274,20 @@ class Analyzer:
 
         while Q:
 
-            cur = Q.pop(0)
+            cur = Q.pop(0) # format of [x, y, dist]
             if cur[2] > max_dist:
                 continue
+
             
             if desired_color(self.img.getpixel((cur[0], cur[1]))):
-                new_areas, new_widths, new_lengths, new_validity, new_divots = self.get_region(cur[0], cur[1], desired_color=desired_color)
-                new_areas, new_widths, new_lengths, new_validity = self.divvy_by_divot(new_areas, new_widths, new_lengths, new_validity, new_divots)
+
+                new_areas, maxy, minx, miny, maxx, new_validity, new_divots = self.get_region(cur[0], cur[1], desired_color=desired_color)
                 areas.extend(new_areas)
-                widths.extend(new_widths)
-                lengths.extend(new_lengths)
+
+                max_ys.extend(maxy)
+                min_xs.extend(minx)
+                min_ys.extend(miny)
+                max_xs.extend(maxx)
                 validity = new_validity and validity
 
             else:
@@ -282,18 +297,19 @@ class Analyzer:
                     Q.append(list(x), cur[2] + 1)
 
 
-        return areas, widths, lengths, validity, divots
+        return areas, max_ys, min_xs, min_ys, max_xs, validity, divots
     
+    def find_nearest_pair(self, divots):
+            self.flood_fill(divots, colorKey['Divot'])
 
-
-    def divvy_by_divot(self, to_change, heights, widths, validity, divots):
+    def divvy_by_divot(self, to_change, max_ys, min_xs, min_ys, max_xs, validity, divots):
         '''
         Returns the to_change area list but divided by divot if a valid output can be found, 
         along with its validity
         '''
 
         if not validity or len(divots) == 0:
-            return to_change, heights, widths, validity
+            return to_change, max_ys, min_xs, min_ys, max_xs, validity
         
 
         divot_xs = []
@@ -301,7 +317,7 @@ class Analyzer:
         
         while divots:
             cur = divots.pop()
-            new_divot, ____, ___, _, __ = self.get_region(cur[0], cur[1], desired_color=lambda color: colorKey['Divot'] == color, max_dist=MAX_DIVOT_DISTANCE)
+            new_divot, ____, ___, _, __, _____, _____ = self.get_region(cur[0], cur[1], desired_color=lambda color: colorKey['Divot'] == color, max_dist=MAX_DIVOT_DISTANCE)
 
             to_add = []
 
@@ -317,11 +333,12 @@ class Analyzer:
 
 
         if len(divot_xs) == 1:
-            return to_change, heights, widths, validity # could be okay, test to see if bad
+            return to_change, max_ys, min_xs, min_ys, max_xs, validity # could be okay, test to see if bad
 
         if len(divot_xs) != 2 or len(to_change) != 1:
-            return to_change, heights, widths, False # too many divots to be a divide or too many cells to be sorted into parent and bud
+            return to_change, max_ys, min_xs, min_ys, max_xs, False # too many divots to be a divide or too many cells to be sorted into parent and bud
         
+
         
         point1 = [int(mean(divot_xs[0])), int(mean(divot_ys[0]))]
         point2 = [int(mean(divot_xs[1])), int(mean(divot_ys[1]))]
@@ -334,45 +351,39 @@ class Analyzer:
             validation = lambda x, y : y > (((point2[1] - point1[1]) / (point2[0] - point1[0])) * (x - point1[0])) + point1[1]
             
         new_set = [[], []]
-        print(widths, heights)
-        xmaxs = [point1[0] - widths[0], point1[0] - widths[0]]
-        xmins = [point1[0] + widths[0], point1[0] + widths[0]]
-        ymaxs = [point1[1] - heights[0], point1[1] - heights[0]]
-        ymins = [point1[1] + heights[0], point1[1] + heights[0]]
+        max_xs = [max_xs[0], max_xs[0]]
+        min_xs = [min_xs[0], min_xs[0]]
+        max_ys = [max_ys[0], max_ys[0]]
+        min_ys = [min_ys[0], min_ys[0]]
 
         for x in to_change[0]:
             if validation(x[0], x[1]):
                 new_set[0].append(x)
 
-                if x[0] > xmaxs[0]:
-                    xmaxs[0] = x[0]
-                if x[0] < xmins[0]:
-                    xmins[0] = x[0]
+                if x[0] > max_xs[0]:
+                    max_xs[0] = x[0]
+                if x[0] < min_xs[0]:
+                    min_xs[0] = x[0]
 
-                if x[1] > ymaxs[0]:
-                    ymaxs[0] = x[1]
-                if x[1] < xmins[0]:
-                    ymins[0] = x[1]
+                if x[1] > max_ys[0]:
+                    max_ys[0] = x[1]
+                if x[1] < min_ys[0]:
+                    min_ys[0] = x[1]
             else:
                 new_set[1].append(x)
 
-                if x[0] > xmaxs[1]:
-                    xmaxs[1] = x[0]
-                if x[0] < xmins[1]:
-                    xmins[1] = x[0]
+                if x[0] > max_xs[1]:
+                    max_xs[1] = x[0]
+                if x[0] < min_xs[1]:
+                    min_xs[1] = x[0]
 
-                if x[1] > ymaxs[1]:
-                    ymaxs[1] = x[1]
-                if x[1] < xmins[1]:
-                    ymins[1] = x[1]
+                if x[1] > max_ys[1]:
+                    max_ys[1] = x[1]
+                if x[1] < min_ys[1]:
+                    min_ys[1] = x[1]
 
-        print(len(new_set[0]), len(new_set[1]))
-        new_set = list(filter(lambda set : len(set) > 0, new_set))
 
-        heights = [ymaxs[0] - ymins[0], ymaxs[1] - ymins[1]]
-        widths = [xmaxs[0] - xmins[0], xmaxs[1] - xmins[1]]
-
-        return new_set, heights, widths, validity
+        return new_set, max_ys, min_xs, min_ys, max_xs, validity
 
 
 
@@ -384,9 +395,8 @@ class Analyzer:
 
         while self.next_item():
             
-            to_change, heights, widths, validity, divots = self.get_region(self.x, self.y) 
-            to_change, heights, widths, validity = self.divvy_by_divot(to_change, heights, widths, validity, divots)
-            self.flood_fill(divots, colorKey['Divot'])
+            to_change, max_ys, min_xs, min_ys, max_xs, validity, divots = self.get_region(self.x, self.y) 
+            to_change, max_ys, min_xs, min_ys, max_xs, validity = self.divvy_by_divot(to_change, max_ys, min_xs, min_ys, max_xs, validity, divots)
             
             should_ignore = not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
@@ -399,14 +409,13 @@ class Analyzer:
             if not validity: # all of areas bad, too close to edge
                 for x in range(len(to_change)):
                     should_ignore.append(x)
-            '''
             else:
                 for area in range(len(to_change)): # if any of the areas are insufficiently round, see as background
-                    if insufficiently_round(len(to_change[area]), heights[area], widths[area]) or \
+
+                    if insufficiently_round(len(to_change[area]), max_xs[area] - min_xs[area], max_ys[area] - min_ys[area]) or \
                         len(to_change[area]) < IGNORE_ALL_SIZE:
                         should_ignore.append(area)
                         break
-            '''
 
             should_ignore.reverse()
             for area in should_ignore:
@@ -420,7 +429,7 @@ class Analyzer:
                 for area in to_change:
                     self.flood_fill(area, colorKey['New']) 
 
-                region_type = self.add_region(to_change)
+                region_type = self.add_region(to_change, max_ys, min_xs, min_ys, max_xs)
 
                 for i, area in enumerate(to_change):
                     color = region_type

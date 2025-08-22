@@ -2,6 +2,7 @@
 
 from config import *
 from math import pi
+from numpy import abs
 
 
 TOP = 1
@@ -101,10 +102,10 @@ def insufficiently_round(area, width, height):
     Returns False otherwise
     '''
 
-    expected_area = (pi * (width / 2) * (height / 2))
+    expected_area = (pi * (abs(width) / 2) * (abs(height) / 2)) #pi * r * r
 
-    if expected_area * REQUIRED_ROUNDNESS > area or \
-        expected_area < area * REQUIRED_ROUNDNESS :
+    if area / expected_area > MAX_ROUNDNESS + ROUNDNESS_FORGIVENESS or \
+        area / expected_area < 1/(MAX_ROUNDNESS + ROUNDNESS_FORGIVENESS):
 
         return True
     

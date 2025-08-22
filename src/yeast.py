@@ -2,24 +2,24 @@
 yeast_count = [0]
 
 class Region:
-    def __init__(self, x, y):
-        self.anchor = [x, y]
+    def __init__(self, max_ys, min_xs, min_ys, max_xs):
+        self.anchor = [(max_xs + min_xs) / 2, (max_ys + min_ys) / 2]
     def __str__(self):
         return str(self.anchor).replace(",", "")
 
 
 
 class Background(Region):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, max_ys, min_xs, min_ys, max_xs):
+        super().__init__(max_ys, min_xs, min_ys, max_xs)
 
 
 
 
 
 class Yeast(Region):
-    def __init__(self, x, y, area):
-        super().__init__(x, y)
+    def __init__(self, max_ys, min_xs, min_ys, max_xs, area):
+        super().__init__(max_ys, min_xs, min_ys, max_xs)
         self.area = area
         self.id = yeast_count[0]
         yeast_count[0] += 1
@@ -37,9 +37,16 @@ class Yeast(Region):
 
 
 class BuddedYeast(Yeast):
-    def __init__(self, x, y, yeast1 : Yeast, yeast2 : Yeast):
-        super().__init__(x, y, yeast1.get_area() + yeast2.get_area())
+    def __init__(self, max_ys, min_xs, min_ys, max_xs, yeast1 : Yeast, yeast2 : Yeast):
+        super().__init__(max_ys, min_xs, min_ys, max_xs, yeast1.get_area() + yeast2.get_area())
         self.yeast = [yeast1, yeast2]
+        self.yeast.sort(key=lambda y : y.get_area(), reverse=True)
+        
+
+        if self.yeast[0].id  > self.yeast[1].id:
+            second_id = self.yeast[0].id
+            self.yeast[0].id = self.yeast[1].id
+            self.yeast[1].id = second_id
 
     def get_all_areas(self):
         return [self.yeast[0].get_area(), self.yeast[1].get_area()]
@@ -59,9 +66,9 @@ class BuddedYeast(Yeast):
 
 
 class IgnoredYeast(Region):
-    def __init__(self, x, y, yeasts):
+    def __init__(self, max_ys, min_xs, min_ys, max_xs, yeasts):
         self.yeast = yeasts
-        super().__init__(x, y)
+        super().__init__(max_ys, min_xs, min_ys, max_xs)
 
 
     def get_all_areas(self):
@@ -98,7 +105,7 @@ class YeastManager:
         return []
 
 
-    def add_region(self, regions, x, y):
+    def add_region(self, regions, max_ys, min_xs, min_ys, max_xs, ignore = False):
 
         yeasts = []
         r_type = Yeast
@@ -109,22 +116,13 @@ class YeastManager:
             if len(r) == 0:
                 break
                 
-            divots_c = 0
-            if divots_c % 2 != 0: # uneven number of divots? malformed
+            if ignore: # ignored? remember
                 r_type = IgnoredYeast
-                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+                yeasts.append(Yeast(max_ys[i], min_xs[i], min_ys[i], max_xs[i], len(r)))
 
-            elif divots_c == 0: # single cell :>
-                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
-
-            elif divots_c == 2: # two cells pinched at the divide
-                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
-                yeasts.append(Yeast(r[1][0], r[1][1], len(r)))
-
-            elif divots_c > 2 or divots_c < 1: #weird nonsense or more than 2 cells
-                r_type = IgnoredYeast
-                print(len(r))
-                yeasts.append(Yeast(r[0][0], r[0][1], len(r)))
+            else: # single cell :>
+                yeasts.append(Yeast(max_ys[i], min_xs[i], min_ys[i], max_xs[i], len(r)))
+                
             i += 1
 
 
@@ -133,11 +131,11 @@ class YeastManager:
             return Yeast
         
         elif len(yeasts) == 2 and r_type != IgnoredYeast:
-            self.add_budded(BuddedYeast(x, y, yeasts[0], yeasts[1]))
+            self.add_budded(BuddedYeast(max_ys[0], min_xs[0], min_ys[0], max_xs[0], yeasts[0], yeasts[1]))
             return BuddedYeast
         
         elif len(yeasts) > 2 or r_type == IgnoredYeast:
-            self.add_cluster(IgnoredYeast(x, y, yeasts))
+            self.add_cluster(IgnoredYeast(max_ys[0], min_xs[0], min_ys[0], max_xs[0], yeasts))
 
         return IgnoredYeast
 
