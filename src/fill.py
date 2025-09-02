@@ -1,8 +1,8 @@
 
 from utils import *
-from numpy import abs, mean
-from PIL import ImageDraw
-
+from numpy import abs, mean, array
+from PIL import ImageDraw, Image
+import os
 
 
 class Analyzer:
@@ -148,6 +148,11 @@ class Analyzer:
         neighbor_vector = []
         width = right - left + 2
         height = bottom - top + 2
+
+        xs = []
+        ys = []
+
+            
         
         if not width-2 or not height-2:
             return to_add
@@ -175,68 +180,72 @@ class Analyzer:
                     and x + left < self.img.size[0] and y + right < self.img.size[0]:
                     
                     to_add.append([x + left, y + top])
-        
+                    xs.append(x+left)
+                    ys.append(y+top)
+                    #neighbor_vector[y][x] = 1
+                #else:
+                    #neighbor_vector[y][x] = 0
+
         return to_add
 
     
     def get_one_area(self, x, y, current, desired_color = lambda color: color == colorKey['New'], find_divot = True, max_dist = MAX_BUDDING_DISTANCE):
         Q = [[x, y]]
-        starting_color = self.img.getpixel((x, y))[0]
 
         top = y
         bottom = y
         left = x
         right = x
 
+
         include = True
+    
         while Q:
+            cur = Q.pop(0)
+            color = self.img.getpixel((cur[0], cur[1]))
+            if not desired_color(color):
+                continue
 
-            while Q:
-                cur = Q.pop(0)
-                color = self.img.getpixel((cur[0], cur[1]))
-                if not desired_color(color):
-                    continue
+            data = self.img.load()
+            data[cur[0], cur[1]] = colorKey['Added']
 
-                data = self.img.load()
-                data[cur[0], cur[1]] = colorKey[Background]
+            if cur[0] > right:
+                right = cur[0]
+            if cur[0] < left:
+                left = cur[0]
+            if cur[1] > bottom:
+                bottom = cur[1]
+            if cur[1] < top:
+                top = cur[1]
 
-                if cur[0] > right:
-                    right = cur[0]
-                if cur[0] < left:
-                    left = cur[0]
-                if cur[1] > bottom:
-                    bottom = cur[1]
-                if cur[1] < top:
-                    top = cur[1]
+            current.append(cur)
+            if cur[0] < max_dist or cur[1] < max_dist or \
+                cur[0] > self.width-max_dist or cur[1] == self.length-max_dist:
+                include = False # too close to edge of image, not valid cell
 
-
-                if abs(color[0] - starting_color) == 0:
-                    current.append(cur)
-                    if cur[0] < max_dist or cur[1] < max_dist or \
-                        cur[0] > self.width-max_dist or cur[1] == self.length-max_dist:
-                        include = False # too close to edge of image, not valid cell
-
-                    Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
-
-            
-            fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
-            current.extend(fill_section)
-            # corners get messy if a line moves diagonally, double run through catches those cases.
-            fill_section2 = self.cascade_fill(x, y, current, top, bottom, right, left) 
-            current.extend(fill_section2)
-            fill_section.extend(fill_section2)
-
-            if find_divot:
-                divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
-
-            self.flood_fill(current, colorKey[Background])
-            for new in fill_section:
-                    Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
-
-            if find_divot:
-                self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
+            Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
+    
 
         
+        fill_section = self.cascade_fill(x, y, current, top, bottom, right, left)
+        current.extend(fill_section)
+
+
+        # corners get messy if a line moves diagonally, double run through catches those cases.
+        fill_section2 = self.cascade_fill(x, y, current, top, bottom, right, left) 
+        current.extend(fill_section2)
+        fill_section.extend(fill_section2)
+
+        if find_divot:
+            divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
+
+        self.flood_fill(current, colorKey[Background])
+        for new in fill_section:
+                Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
+
+        if find_divot:
+            self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
+    
 
         return right, left, bottom, top, include, divots
 
@@ -246,7 +255,7 @@ class Analyzer:
     def get_region(self, x, y, desired_color = lambda color: color == colorKey['New'], max_dist = MAX_BUDDING_DISTANCE):
         '''
         identifies the potential cell region at coordinate
-        (x, y) and returns the pixels it includes, its height,
+        (x, y) and returns the pixels it includes its height
         and its width.
         '''
 
@@ -291,7 +300,7 @@ class Analyzer:
                 validity = new_validity and validity
 
             else:
-                new_points = self.Q_around(cur[0], cur[1], [], 
+                new_points = self.Q_around(cur[0], cur[1], [],
                                            lambda color: color != colorKey['Added'] and color != colorKey['Old'])
                 for x in new_points:
                     Q.append(list(x), cur[2] + 1)
@@ -299,8 +308,17 @@ class Analyzer:
 
         return areas, max_ys, min_xs, min_ys, max_xs, validity, divots
     
-    def find_nearest_pair(self, divots):
-            self.flood_fill(divots, colorKey['Divot'])
+
+    def find_nearest_pair(self, divot_xs, divot_ys):
+        
+        point1 = [int(mean(divot_xs[0])), int(mean(divot_ys[0]))]
+        point2 = [int(mean(divot_xs[1])), int(mean(divot_ys[1]))]
+
+        
+        
+        return point1, point2
+
+
 
     def divvy_by_divot(self, to_change, max_ys, min_xs, min_ys, max_xs, validity, divots):
         '''
@@ -311,9 +329,11 @@ class Analyzer:
         if not validity or len(divots) == 0:
             return to_change, max_ys, min_xs, min_ys, max_xs, validity
         
+        
 
         divot_xs = []
         divot_ys = []
+
         
         while divots:
             cur = divots.pop()
@@ -323,13 +343,14 @@ class Analyzer:
 
             for x in new_divot:
                 to_add.extend(list(x))
+            
 
             if not to_add:
                 continue
 
+
             divot_xs.append(to_add[0][0])
             divot_ys.append(to_add[0][1])
-
 
 
         if len(divot_xs) == 1:
@@ -339,9 +360,9 @@ class Analyzer:
             return to_change, max_ys, min_xs, min_ys, max_xs, False # too many divots to be a divide or too many cells to be sorted into parent and bud
         
 
+        point1, point2 = self.find_nearest_pair(divot_xs, divot_ys)
         
-        point1 = [int(mean(divot_xs[0])), int(mean(divot_ys[0]))]
-        point2 = [int(mean(divot_xs[1])), int(mean(divot_ys[1]))]
+
 
 
         if point1[0] == point2[0]: #perfectly vertical
@@ -351,41 +372,30 @@ class Analyzer:
             validation = lambda x, y : y > (((point2[1] - point1[1]) / (point2[0] - point1[0])) * (x - point1[0])) + point1[1]
             
         new_set = [[], []]
-        max_xs = [max_xs[0], max_xs[0]]
-        min_xs = [min_xs[0], min_xs[0]]
-        max_ys = [max_ys[0], max_ys[0]]
-        min_ys = [min_ys[0], min_ys[0]]
+        max_xs = [min_xs[0], min_xs[0]]
+        min_xs = [max_xs[0], max_xs[0]]
+        max_ys = [min_ys[0], min_ys[0]]
+        min_ys = [max_ys[0], max_ys[0]]
 
-        for x in to_change[0]:
-            if validation(x[0], x[1]):
-                new_set[0].append(x)
+        for pos in to_change[0]:
+            if validation(pos[0], pos[1]):
+                new_set[0].append(pos)
+                self.update_record(min_xs, max_xs, 0, pos[0])
+                self.update_record(min_ys, max_ys, 0, pos[1])
 
-                if x[0] > max_xs[0]:
-                    max_xs[0] = x[0]
-                if x[0] < min_xs[0]:
-                    min_xs[0] = x[0]
-
-                if x[1] > max_ys[0]:
-                    max_ys[0] = x[1]
-                if x[1] < min_ys[0]:
-                    min_ys[0] = x[1]
             else:
-                new_set[1].append(x)
-
-                if x[0] > max_xs[1]:
-                    max_xs[1] = x[0]
-                if x[0] < min_xs[1]:
-                    min_xs[1] = x[0]
-
-                if x[1] > max_ys[1]:
-                    max_ys[1] = x[1]
-                if x[1] < min_ys[1]:
-                    min_ys[1] = x[1]
+                new_set[1].append(pos)
+                self.update_record(min_xs, max_xs, 1, pos[0])
+                self.update_record(min_ys, max_ys, 1, pos[1])
 
 
         return new_set, max_ys, min_xs, min_ys, max_xs, validity
 
-
+    def update_record(self, min, max, pos, value):
+        if min[pos] > value:
+            min[pos] = value
+        if max[pos] < value:
+            max[pos] = value
 
     def analyze(self):
         '''
@@ -419,7 +429,7 @@ class Analyzer:
 
             should_ignore.reverse()
             for area in should_ignore:
-                    self.flood_fill(to_change.pop(area), colorKey[IgnoredYeast]) #colors and removes areas for removal
+                    self.flood_fill(to_change.pop(area), colorKey[IgnoredYeast]) #colors for removal
 
             '''
             Parse through remaining areas

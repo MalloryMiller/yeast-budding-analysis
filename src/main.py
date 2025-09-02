@@ -11,6 +11,14 @@ class main():
     def __init__(self):
         return 
     
+
+
+    def read_flags(self):
+        pass
+
+
+
+    
     def analyze(self, filename):
         path = '/'.join(filename.split('/')[:-1]) + "/"
         title = filename.split('/')[-1].split(".")[0]
@@ -35,9 +43,7 @@ class main():
         img = Image.fromarray(color_coverted)
         img = ImageOps.invert(img)
 
-        img.save(path + title + "/cleaned_" + title + ".png")
-
-        #registry = Image.new('RGB', img.size, color=colorKey['New'])
+        img.save(path + title + "/cleaned_" + title + ".png", "PNG")
 
         a = Analyzer(img, ym)
         a.analyze()
@@ -46,11 +52,11 @@ class main():
         img = ImageChops.multiply(original, img)
 
 
-        img.save(path + title + "/results_of_" + title + ".png","PNG")
+        img.save(path + title + "/results_of_" + title + ".png", "PNG")
         ym.results()
 
         a.label_img(img)
-        img.save(path + title + "/labeled_" + title + ".png","PNG")
+        img.save(path + title + "/labeled_" + title + ".png", "PNG")
         
     
 
@@ -65,3 +71,5 @@ print("full done")
 
 m.analyze("tests/cleaner_test.jpg")
 print("cleaner done")
+m.analyze("tests/broken_test_smaller.jpg")
+print("broken done")
