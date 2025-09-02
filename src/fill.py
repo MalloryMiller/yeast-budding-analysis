@@ -1,6 +1,6 @@
 
 from utils import *
-from numpy import abs, mean, array
+from numpy import abs, mean, array, inf
 from PIL import ImageDraw, Image
 import os
 
@@ -309,10 +309,17 @@ class Analyzer:
         return areas, max_ys, min_xs, min_ys, max_xs, validity, divots
     
 
-    def find_nearest_pair(self, divot_xs, divot_ys):
+    def find_nearest_pair(self, divots):
+        min_dist = inf
         
-        point1 = [int(mean(divot_xs[0])), int(mean(divot_ys[0]))]
-        point2 = [int(mean(divot_xs[1])), int(mean(divot_ys[1]))]
+
+        for pos in divots[0]:
+            for pos2 in divots[1]:
+                dist = ((pos[0] - pos2[0])**2 + (pos[1] - pos2[1])**2)**0.5
+                if dist < min_dist:
+                    min_dist = dist
+                    point1 = pos
+                    point2 = pos2
 
         
         
@@ -330,15 +337,15 @@ class Analyzer:
             return to_change, max_ys, min_xs, min_ys, max_xs, validity
         
         
-
-        divot_xs = []
-        divot_ys = []
+        divot_areas = []
 
         
         while divots:
             cur = divots.pop()
             new_divot, ____, ___, _, __, _____, _____ = self.get_region(cur[0], cur[1], desired_color=lambda color: colorKey['Divot'] == color, max_dist=MAX_DIVOT_DISTANCE)
-
+            for d in new_divot:
+                if d:
+                    divot_areas.extend(new_divot)
             to_add = []
 
             for x in new_divot:
@@ -349,18 +356,13 @@ class Analyzer:
                 continue
 
 
-            divot_xs.append(to_add[0][0])
-            divot_ys.append(to_add[0][1])
-
-
-        if len(divot_xs) == 1:
+        if len(divot_areas) == 1:
             return to_change, max_ys, min_xs, min_ys, max_xs, validity # could be okay, test to see if bad
 
-        if len(divot_xs) != 2 or len(to_change) != 1:
+        if len(divot_areas) != 2 or len(to_change) != 1:
             return to_change, max_ys, min_xs, min_ys, max_xs, False # too many divots to be a divide or too many cells to be sorted into parent and bud
         
-
-        point1, point2 = self.find_nearest_pair(divot_xs, divot_ys)
+        point1, point2 = self.find_nearest_pair(divot_areas)
         
 
 
