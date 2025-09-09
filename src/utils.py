@@ -31,6 +31,8 @@ SIDES_FOR_SURROUNDED = [ # must be in descending order.
 ORIGINAL = sum(SIDES_FOR_SURROUNDED) + 256
 
 
+DIVOT_THRESHHOLD = 4
+
 
 POSN_ADJUSTMENT = {
         BOTTOMRIGHT : [-1, -1], 
@@ -106,13 +108,14 @@ def insufficiently_round(area, width, height):
     to be considered round based on the REQUIRED_ROUNDNESS.
     Returns False otherwise
     '''
-    
+
     return False
+    
 
     expected_area = (pi * (abs(width) / 2) * (abs(height) / 2)) #pi * r * r
 
-    if area / expected_area > MAX_ROUNDNESS + ROUNDNESS_FORGIVENESS or \
-        area / expected_area < 1/(MAX_ROUNDNESS + ROUNDNESS_FORGIVENESS):
+    if(area / expected_area > MAX_ROUNDNESS or \
+        area / expected_area < 1/(MAX_ROUNDNESS)):
 
         return True
     

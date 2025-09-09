@@ -177,7 +177,7 @@ class Analyzer:
                 if is_surrounded(neighbor_vector[y][x], surrounded_by) \
                     and neighbor_vector[y][x] != ORIGINAL \
                     and x + left > 0 and y + right > 0 \
-                    and x + left < self.img.size[0] and y + right < self.img.size[0]:
+                    and x + left < self.img.size[0] and y + top < self.img.size[0]:
                     
                     to_add.append([x + left, y + top])
                     xs.append(x+left)
@@ -198,7 +198,7 @@ class Analyzer:
         right = x
 
 
-        include = True
+        validity = True
     
         while Q:
             cur = Q.pop(0)
@@ -221,7 +221,7 @@ class Analyzer:
             current.append(cur)
             if cur[0] < max_dist or cur[1] < max_dist or \
                 cur[0] > self.width-max_dist or cur[1] == self.length-max_dist:
-                include = False # too close to edge of image, not valid cell
+                validity = False # too close to edge of image, not valid cell
 
             Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
     
@@ -236,17 +236,19 @@ class Analyzer:
         current.extend(fill_section2)
         fill_section.extend(fill_section2)
 
-        if find_divot:
-            divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
-            self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
-
         self.flood_fill(current, colorKey[Background])
+        
+        if find_divot:
+            divots = self.cascade_fill(x, y, current, top, bottom, right, left, DIVOT_THRESHHOLD)
+            self.flood_fill(divots, colorKey['Divot'])
+
+
         for new in fill_section:
                 Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
 
     
 
-        return right, left, bottom, top, include, divots
+        return right, left, bottom, top, validity, divots
 
 
 
@@ -258,7 +260,7 @@ class Analyzer:
         and its width.
         '''
 
-        areas = []
+        areas   = []
         current = []
         max_xs = []
         min_xs = []
@@ -315,6 +317,9 @@ class Analyzer:
         '''
 
         min_dist = inf
+
+        
+            
     
         for pos in divots[0]:
             for pos2 in divots[1]:
@@ -325,6 +330,12 @@ class Analyzer:
                     point2 = pos2
 
         return point1, point2
+    
+
+    def filter_small_areas(self, areas, area_sizes):
+        return areas, area_sizes
+
+
 
 
 
@@ -365,12 +376,17 @@ class Analyzer:
         # TODO: maybe filter out divots that are small relative to other divots?
         
 
-        if len(divot_areas) == 1:
+        divot_areas, divot_sizes = self.filter_small_areas(divot_areas, divot_sizes)
+
+
+
+        if len(divot_areas) == 1 or (len(divot_areas) == 2 and not divot_areas[1] or not divot_areas[0]):
             return to_change, max_ys, min_xs, min_ys, max_xs, validity # could be okay, test to see if bad
+        
 
         if len(divot_areas) != 2 or len(to_change) != 1:
             return to_change, max_ys, min_xs, min_ys, max_xs, False # too many divots to be a divide or too many cells to be sorted into parent and bud
-        
+        #print(divot_areas)
         point1, point2 = self.find_nearest_pair(divot_areas)
         
 
@@ -399,9 +415,6 @@ class Analyzer:
                 self.update_record(min_xs_new, max_xs_new, 1, pos[0])
                 self.update_record(min_ys_new, max_ys_new, 1, pos[1])
 
-        print(min_ys_new)
-        print(min_xs_new)
-
 
         return new_set, max_ys_new, min_xs_new, min_ys_new, max_xs_new, validity
 
@@ -420,7 +433,6 @@ class Analyzer:
         while self.next_item():
             
             to_change, max_ys, min_xs, min_ys, max_xs, validity, divots = self.get_region(self.x, self.y) 
-            to_change, max_ys, min_xs, min_ys, max_xs, validity = self.divvy_by_divot(to_change, max_ys, min_xs, min_ys, max_xs, validity, divots)
             
             validity = validity and not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
@@ -454,7 +466,7 @@ class Analyzer:
                     self.flood_fill(area, colorKey['New']) 
 
                 region_type = self.add_region(to_change, max_ys, min_xs, min_ys, max_xs)
-
+                
                 for i, area in enumerate(to_change):
                     color = region_type
                     if region_type == BuddedYeast and i == 1:
