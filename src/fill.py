@@ -238,13 +238,12 @@ class Analyzer:
 
         if find_divot:
             divots = self.cascade_fill(x, y, current, top, bottom, right, left, 4)
+            self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
 
         self.flood_fill(current, colorKey[Background])
         for new in fill_section:
                 Q = self.Q_around(cur[0], cur[1], Q, desired_color, True)
 
-        if find_divot:
-            self.flood_fill(divots, colorKey['Divot']) # TODO make this true again
     
 
         return right, left, bottom, top, include, divots
@@ -310,9 +309,13 @@ class Analyzer:
     
 
     def find_nearest_pair(self, divots):
-        min_dist = inf
-        
+        '''
+        Takes a list of two different areas and returns the points in each area
+        where they are closest to one another.
+        '''
 
+        min_dist = inf
+    
         for pos in divots[0]:
             for pos2 in divots[1]:
                 dist = ((pos[0] - pos2[0])**2 + (pos[1] - pos2[1])**2)**0.5
@@ -321,8 +324,6 @@ class Analyzer:
                     point1 = pos
                     point2 = pos2
 
-        
-        
         return point1, point2
 
 
@@ -355,6 +356,14 @@ class Analyzer:
             if not to_add:
                 continue
 
+        
+        divot_sizes = []
+
+        for d in divot_areas:
+            divot_sizes.append(len(d))
+
+        # TODO: maybe filter out divots that are small relative to other divots?
+        
 
         if len(divot_areas) == 1:
             return to_change, max_ys, min_xs, min_ys, max_xs, validity # could be okay, test to see if bad
@@ -374,24 +383,27 @@ class Analyzer:
             validation = lambda x, y : y > (((point2[1] - point1[1]) / (point2[0] - point1[0])) * (x - point1[0])) + point1[1]
             
         new_set = [[], []]
-        max_xs = [min_xs[0], min_xs[0]]
-        min_xs = [max_xs[0], max_xs[0]]
-        max_ys = [min_ys[0], min_ys[0]]
-        min_ys = [max_ys[0], max_ys[0]]
+        max_xs_new = [min_xs[0], min_xs[0]]
+        min_xs_new = [max_xs[0], max_xs[0]]
+        max_ys_new = [min_ys[0], min_ys[0]]
+        min_ys_new = [max_ys[0], max_ys[0]]
 
         for pos in to_change[0]:
             if validation(pos[0], pos[1]):
                 new_set[0].append(pos)
-                self.update_record(min_xs, max_xs, 0, pos[0])
-                self.update_record(min_ys, max_ys, 0, pos[1])
+                self.update_record(min_xs_new, max_xs_new, 0, pos[0])
+                self.update_record(min_ys_new, max_ys_new, 0, pos[1])
 
             else:
                 new_set[1].append(pos)
-                self.update_record(min_xs, max_xs, 1, pos[0])
-                self.update_record(min_ys, max_ys, 1, pos[1])
+                self.update_record(min_xs_new, max_xs_new, 1, pos[0])
+                self.update_record(min_ys_new, max_ys_new, 1, pos[1])
+
+        print(min_ys_new)
+        print(min_xs_new)
 
 
-        return new_set, max_ys, min_xs, min_ys, max_xs, validity
+        return new_set, max_ys_new, min_xs_new, min_ys_new, max_xs_new, validity
 
     def update_record(self, min, max, pos, value):
         if min[pos] > value:
@@ -410,7 +422,7 @@ class Analyzer:
             to_change, max_ys, min_xs, min_ys, max_xs, validity, divots = self.get_region(self.x, self.y) 
             to_change, max_ys, min_xs, min_ys, max_xs, validity = self.divvy_by_divot(to_change, max_ys, min_xs, min_ys, max_xs, validity, divots)
             
-            should_ignore = not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
+            validity = validity and not (len(to_change) == 1 and len(to_change[0]) < IGNORE_ISOLATED_SIZE)
 
             should_ignore = []
 
@@ -450,5 +462,19 @@ class Analyzer:
                     self.flood_fill(area, colorKey[color]) 
 
                     
+
+
+
+class ManualAnalyzer(Analyzer):
+    def __init__(self, img, preset, ym: YeastManager):
+        super().analyze(img, ym)
+
+        self.preset = preset
+
+    def nearest_color(self, color):
+        return color
+
+    def analyze(self):
+        pass
 
 

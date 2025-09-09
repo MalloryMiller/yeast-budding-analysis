@@ -24,22 +24,16 @@ UNITS = "μm"
 
 THRESHOLD = 5 # in grayscale space 0-255
 
-
-THRESHOLD2 = 254 # in grayscale space 0-255
+THRESHOLD2 = 150 # in grayscale space 0-255
 THRESHOLD1 = 100 # in grayscale space 0-255
 
 IGNORE_ISOLATED_SIZE = 30 # in px, doesn't count as a cell if by itself
-IGNORE_ALL_SIZE = 20
+IGNORE_ALL_SIZE = 5
 
 MAX_BUDDING_DISTANCE = 6 # in px
 MAX_ROUNDNESS = 1 # in % of expected ovular area based on height and width
-ROUNDNESS_FORGIVENESS = 3 #MAX_ROUNDNESS will be +/- this
 
 
-MAX_DIVOT_DISTANCE = 4
-DIVOT_MIN_SIZE = 3
-
-SMOOTHING = 0 # reduces accuracy, probably don't use
-CONTRAST_CUTOFF = 2
-CONTRAST_IGNORE = 4
+MAX_DIVOT_DISTANCE = 3
+DIVOT_MIN_SIZE = 4
 
