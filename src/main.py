@@ -4,7 +4,7 @@ import os
 
 
 from utils import * 
-from fill import Analyzer
+from fill import Analyzer, ManualAnalyzer
 from key import Key
 
 
@@ -20,22 +20,46 @@ class main():
 
 
 
-    
-    def analyze(self, filename):
+
+    def setup_folder(self, filename):
         path = '/'.join(filename.split('/')[:-1]) + "/"
         title = filename.split('/')[-1].split(".")[0]
         os.makedirs(path + title, exist_ok=True)
-        
-        ym = YeastManager(title, path, UNIT_PER_PIXEL, UNITS)
+        return title, path
+    
 
-        
+    def save(self, img, title):
+        print("Saving", title)
+        img.save(title, "PNG")
+    
 
+    def make_ym(self, img, title, path):
+
+        micronpp = UNIT_PER_PIXEL
+
+        if 'ppi' in img.info:
+            micronpp = ppi_to_micronpp(img.info['ppi'][0])
+        else:
+            print("No PPI metadata found. Using default image PPI. Ensure this is accurate for conversions to microns.")
+
+
+        return YeastManager(title, path, micronpp, UNITS)
+
+
+
+
+    
+    def analyze(self, filename, key=True):
+        title, path = self.setup_folder(filename)
         img = Image.open(filename)
+        
+        ym = self.make_ym(img, title, path)
+        
 
-        #img = ImageOps.grayscale(img) 
+        img = ImageOps.grayscale(img) 
         
         #img = img.filter(ImageFilter.GaussianBlur(SMOOTHING))
-        #img = img.convert("RGB")
+        img = img.convert("RGB")
         #img = ImageOps.autocontrast(img, cutoff = CONTRAST_CUTOFF, ignore = CONTRAST_IGNORE)
         #filter_out_grays(img)
 
@@ -46,26 +70,41 @@ class main():
         
         img = Image.fromarray(color_coverted)
         img = ImageOps.invert(img)
-        img.save(path + title + "/cleaned_" + title + ".png", "PNG")
+        self.save(img, path + title + "/cleaned_" + title + ".png")
 
         a = Analyzer(img, ym)
         a.analyze()
-        k=Key(img,DISPLAY_COLORKEY)
 
         original = Image.open(filename)
         img = ImageChops.multiply(original, img)
 
-        
-        img = k.append_key(img)
+        if key:
+            k=Key(img, DISPLAY_COLORKEY)
+            img = k.append_key(img)
 
 
-        img.save(path + title + "/results_of_" + title + ".png", "PNG")
+        self.save(img,path + title + "/results_of_" + title + ".png")
         ym.results()
 
         a.label_img(img)
-        img.save(path + title + "/labeled_" + title + ".png", "PNG")
+        self.save(img, path + title + "/labeled_" + title + ".png")
         
     
+
+    def manual_analyze(self, filename, key=True):
+        title, path = self.setup_folder(filename)
+        img = Image.open(filename)
+
+        
+        img = Image.open(filename)
+        ym = self.make_ym(img, title, path)
+        a = ManualAnalyzer(img, ym)
+        a.refine_preset()
+
+        self.save(a.preset, path + title + "/READPRESET" + title + ".png")
+
+
+
 
 
 
@@ -77,4 +116,5 @@ m.analyze("tests/full_test.jpg")
 print("full done")'''
 
 m.analyze("tests/cleaner_test.jpg")
+m.manual_analyze("tests/cleaner_test.jpg")
 print("cleaner done")

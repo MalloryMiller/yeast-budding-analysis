@@ -1,7 +1,7 @@
 
 from utils import *
 from numpy import abs, mean, array, inf
-from PIL import ImageDraw
+from PIL import ImageDraw, Image
 import os
 
 
@@ -49,7 +49,7 @@ class Analyzer:
 
         cur  = None
 
-        while cur != target_color: # will run once since cur = None
+        while target_color(cur): # will run once since cur = None
             x += 1
 
             if x == x_end:
@@ -73,7 +73,7 @@ class Analyzer:
         Moves self.x and self.y to the next black (unvisited) coordinate in self.img
         '''
 
-        status, self.x, self.y = self.move_cursor(colorKey['New'],
+        status, self.x, self.y = self.move_cursor(lambda color: color != colorKey['New'],
                                                   self.x, self.y,
                                                   self.width, self.length,
                                                   reset_lines=True)
@@ -495,15 +495,54 @@ class Analyzer:
 
 
 class ManualAnalyzer(Analyzer):
-    def __init__(self, img, preset, ym: YeastManager):
-        super().analyze(img, ym)
+    def __init__(self, img, ym: YeastManager):
+        super().__init__(img, ym)
 
-        self.preset = preset
+        self.preset = self.find_preset()
+        assert self.preset != None, "No preset file found for " + ym.name
+        assert self.preset.size[0] >= self.img.size[0], "The found preset file for " + ym.name + " is too small."
+        assert self.preset.size[1] >= self.img.size[1], "The found preset file for " + ym.name + " is too small."
 
-    def nearest_color(self, color):
-        return color
+
+    def find_preset(self):
+        options = os.listdir(self.ym.path)
+        
+        for o in options:
+            
+            if self.ym.name in o and self.ym.name != o.split('.')[0] and ('p' in o or 'P' in o):
+                # Must have the exact name in the title but not be complete match. also must have the letter p somewhere
+                return Image.open(self.ym.path + o)
+
+
+    def refine_preset(self):
+        '''
+        Edits the preset so that all of the colors in it are
+        the nearest color to one in the colorKey (by hue)
+        '''
+        data = self.preset.load()
+        for x in range(self.width):
+            for y in range(self.length):
+                data[x, y] = colorKey[nearest_color(data[x, y])]
+
+
+
+    def next_item(self):
+        '''
+        Moves self.x and self.y to the next black (unvisited) coordinate in self.img
+        '''
+
+        status, self.x, self.y = self.move_cursor(lambda color: not color in DISPLAY_COLORKEY.keys(),
+                                                  self.x, self.y,
+                                                  self.width, self.length,
+                                                  reset_lines=True)
+        
+        return status
+
 
     def analyze(self):
-        pass
+        self.refine_preset()
+
+        while self.next_item():
+            return
 
 

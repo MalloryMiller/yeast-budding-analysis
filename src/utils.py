@@ -65,13 +65,51 @@ FINAL_COLOR_LABELS = [
 
 hue_colorKey = {}
 
-for c in list(colorKey.keys()):
+for c in list([Yeast, BuddedYeast, 'BuddedYeast2', IgnoredYeast, 'Divot']):
     hue_colorKey[rgb_to_hsv(colorKey[c][0]/255, 
                                  colorKey[c][1]/255, 
                                  colorKey[c][2]/255)[0]] = c
  
 
 print(hue_colorKey)
+
+
+
+
+def hue_dist(hue1, hue2):
+
+    smaller = min([hue1, hue2])
+    bigger = max([hue1, hue2])
+
+    return min([abs(hue1-hue2), abs(smaller + 1 - bigger)])
+
+
+
+def nearest_color(color):
+    hsv = rgb_to_hsv(color[0]/255, color[1]/255, color[2]/255)
+    h = hsv[0]
+    s = hsv[1]
+
+    if s < .1:
+        return Background
+    
+    dist = inf
+    cur = None
+
+    for hs in hue_colorKey.keys():
+        d = hue_dist(h, hs)
+        if d < dist:
+            dist = d
+            cur = hs
+
+    return hue_colorKey[cur]
+
+
+
+
+def ppi_to_micronpp(ppi):
+    print(float(1 / (ppi * 25400)))
+    return float(1 / (ppi * 25400))
 
 
 
@@ -163,32 +201,6 @@ def filter_out_grays(img, thresh = THRESHOLD):
         for y in range(img.size[1]):
             if mean(img.getpixel((x, y))) > thresh:
                 data[x, y] = colorKey[Background]
-
-
-def hue_dist(hue1, hue2):
-
-    return min([abs(hue1-hue2), abs((1-hue1)-hue2)])
-
-
-
-def nearest_color(color):
-    hsv = rgb_to_hsv(color[0]/255, color[1]/255, color[2]/255)[0]
-    h = hsv[0]
-    s = hsv[1]
-
-    if s < .1:
-        return Background
-    
-    dist = inf
-    cur = None
-
-    for hs in hue_colorKey.keys():
-        d = hue_dist(h, hs)
-        if d < dist:
-            dist = d
-            cur = hs
-
-    return hue_colorKey[cur]
 
 
 
