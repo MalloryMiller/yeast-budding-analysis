@@ -1,7 +1,7 @@
 
 from utils import *
 from numpy import abs, mean, array, inf
-from PIL import ImageDraw, Image
+from PIL import ImageDraw
 import os
 
 
@@ -15,6 +15,9 @@ class Analyzer:
 
         self.x = 0
         self.y = 0
+
+
+    
 
 
     def label_img(self, img):
@@ -275,13 +278,18 @@ class Analyzer:
         min_ys.append(miny)
         areas.append(current)
 
+        D = divots.copy()
+
         areas, max_ys, min_xs, min_ys, max_xs, validity = self.divvy_by_divot(areas, max_ys, min_xs, min_ys, max_xs, validity, divots)
         
 
         Q = WeightedSetQueue()
         for x in current:
             Q.append(list(x), 0)
-
+        
+        
+        self.flood_fill(D, colorKey['Divot'])
+        
         while Q:
 
             cur = Q.pop(0) # format of [x, y, dist]
@@ -332,8 +340,17 @@ class Analyzer:
         return point1, point2
     
 
-    def filter_small_areas(self, areas, area_sizes):
-        return areas, area_sizes
+    def filter_small_areas(self, areas, area_sizes, ratio = .5):
+        if len(areas) <= 2:
+            return areas, area_sizes
+        avg = mean(area_sizes)
+        sizes = []
+        a = []
+        for A in (range(len(areas))):
+            if area_sizes[A] > avg * ratio:
+                sizes.append(area_sizes[A])
+                a.append(areas[A])
+        return a, sizes
 
 
 

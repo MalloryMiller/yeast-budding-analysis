@@ -2,8 +2,10 @@ from PIL import Image, ImageOps, ImageFilter, ImageChops
 import cv2 
 import os
 
+
 from utils import * 
 from fill import Analyzer
+from key import Key
 
 
 
@@ -31,10 +33,12 @@ class main():
         img = Image.open(filename)
 
         #img = ImageOps.grayscale(img) 
+        
         #img = img.filter(ImageFilter.GaussianBlur(SMOOTHING))
         #img = img.convert("RGB")
         #img = ImageOps.autocontrast(img, cutoff = CONTRAST_CUTOFF, ignore = CONTRAST_IGNORE)
         #filter_out_grays(img)
+
 
         raw = cv2.imread(filename)
         canny = cv2.Canny(raw, THRESHOLD1,THRESHOLD2)
@@ -42,14 +46,17 @@ class main():
         
         img = Image.fromarray(color_coverted)
         img = ImageOps.invert(img)
-
         img.save(path + title + "/cleaned_" + title + ".png", "PNG")
 
         a = Analyzer(img, ym)
         a.analyze()
+        k=Key(img,DISPLAY_COLORKEY)
 
         original = Image.open(filename)
         img = ImageChops.multiply(original, img)
+
+        
+        img = k.append_key(img)
 
 
         img.save(path + title + "/results_of_" + title + ".png", "PNG")
@@ -64,12 +71,10 @@ class main():
 
 m = main()
 
-m.analyze("tests/test.jpg")
+'''m.analyze("tests/test.jpg")
 print("partial done")
 m.analyze("tests/full_test.jpg")
-print("full done")
+print("full done")'''
 
 m.analyze("tests/cleaner_test.jpg")
 print("cleaner done")
-m.analyze("tests/broken_test_smaller.jpg")
-print("broken done")

@@ -3,7 +3,8 @@
 from config import *
 from math import pi
 from numpy import abs
-
+from colorsys import rgb_to_hsv
+from numpy import inf, abs, mean
 
 TOP = 1
 BOTTOM = 2
@@ -44,6 +45,34 @@ POSN_ADJUSTMENT = {
         BOTTOM : [0, -1], 
         TOP : [0, 1], 
 }
+
+DISPLAY_COLORKEY = {
+    colorKey[Background]: 'Background',
+    colorKey[Yeast] : 'Single Yeast',
+    colorKey[BuddedYeast]: 'Parent Budded Yeast',
+    colorKey['BuddedYeast2']: 'Child Budded Yeast',
+    colorKey[IgnoredYeast]: 'Disregarded Shape'
+}
+
+
+FINAL_COLOR_LABELS = [
+    Background,
+    Yeast,
+    'BuddedYeast2',
+    IgnoredYeast
+]
+
+
+hue_colorKey = {}
+
+for c in list(colorKey.keys()):
+    hue_colorKey[rgb_to_hsv(colorKey[c][0]/255, 
+                                 colorKey[c][1]/255, 
+                                 colorKey[c][2]/255)[0]] = c
+ 
+
+print(hue_colorKey)
+
 
 
 def get_adj(posn, dir):
@@ -125,18 +154,41 @@ def insufficiently_round(area, width, height):
 
 def filter_out_grays(img, thresh = THRESHOLD):
     '''
-    Eliminates all gray values such that only the colors
-    colorKey[Background] and colorKey['New'] are in the image
+    Eliminates all gray values such that grayscale values over the threshold
+    become only the color colorKey[Background]
     '''
     data = img.load()
 
     for x in range(img.size[0]):
         for y in range(img.size[1]):
-            if img.getpixel((x, y))[0] < thresh:
+            if mean(img.getpixel((x, y))) > thresh:
                 data[x, y] = colorKey[Background]
-            else:
-                data[x, y] = colorKey['New']
 
+
+def hue_dist(hue1, hue2):
+
+    return min([abs(hue1-hue2), abs((1-hue1)-hue2)])
+
+
+
+def nearest_color(color):
+    hsv = rgb_to_hsv(color[0]/255, color[1]/255, color[2]/255)[0]
+    h = hsv[0]
+    s = hsv[1]
+
+    if s < .1:
+        return Background
+    
+    dist = inf
+    cur = None
+
+    for hs in hue_colorKey.keys():
+        d = hue_dist(h, hs)
+        if d < dist:
+            dist = d
+            cur = hs
+
+    return hue_colorKey[cur]
 
 
 
