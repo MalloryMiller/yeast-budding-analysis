@@ -30,12 +30,12 @@ class Analyzer:
                 draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
         for b in self.ym.cluster:
             for s in b.yeast:
-                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
+                pass #draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
 
         
         
 
-    def move_cursor(self, target_color, x_start, y_start, x_end, y_end, reset_lines = False):
+    def move_cursor(self, ignore_color, x_start, y_start, x_end, y_end, reset_lines = False):
         '''
         returns the coordinates of the next pixel that is the target_color in self.img
 
@@ -49,7 +49,8 @@ class Analyzer:
 
         cur  = None
 
-        while target_color(cur): # will run once since cur = None
+
+        while ignore_color(cur) or cur == None: # will run once since cur = None
             x += 1
 
             if x == x_end:
@@ -83,14 +84,16 @@ class Analyzer:
 
     
 
-    def flood_fill(self, to_change, color):
+    def flood_fill(self, to_change, color, different_img = None):
         '''
         Fills all of the pixels in the array to_change with 
         the given color
         '''
 
-
-        data = self.img.load()
+        if different_img == None:
+            data = self.img.load()
+        else:
+            data = different_img.load()
         for i, x in enumerate(to_change):
             data[x[0], x[1]] = color
         return
@@ -185,9 +188,7 @@ class Analyzer:
                     to_add.append([x + left, y + top])
                     xs.append(x+left)
                     ys.append(y+top)
-                    #neighbor_vector[y][x] = 1
                 #else:
-                    #neighbor_vector[y][x] = 0
 
         return to_add
 
@@ -490,22 +491,35 @@ class Analyzer:
                         color = 'BuddedYeast2'
                     self.flood_fill(area, colorKey[color]) 
 
+    def fix_area_order(self, areas):
+        if len(areas[0]) > len(areas[-1]):
+            areas.reverse()
+
                     
 
 
 
 class ManualAnalyzer(Analyzer):
     def __init__(self, img, ym: YeastManager):
+        self.ym = ym
         super().__init__(img, ym)
 
-        self.preset = self.find_preset()
-        assert self.preset != None, "No preset file found for " + ym.name
-        assert self.preset.size[0] >= self.img.size[0], "The found preset file for " + ym.name + " is too small."
-        assert self.preset.size[1] >= self.img.size[1], "The found preset file for " + ym.name + " is too small."
+        preset = self.find_preset()
+        assert preset != None, "No preset file found for " + ym.name
+        assert preset.size[0] >= self.img.size[0], "The found preset file for " + ym.name + " is too small."
+        assert preset.size[1] >= self.img.size[1], "The found preset file for " + ym.name + " is too small."
+
+        self.original = img
+        self.img = preset
+
+        self.output = Image.new(mode="RGB", size=self.original.size, color=(colorKey[Background]))
+
+
+
 
 
     def find_preset(self):
-        options = os.listdir(self.ym.path)
+        options = os.listdir(self.ym.path) +  os.listdir(self.ym.path) 
         
         for o in options:
             
@@ -519,7 +533,7 @@ class ManualAnalyzer(Analyzer):
         Edits the preset so that all of the colors in it are
         the nearest color to one in the colorKey (by hue)
         '''
-        data = self.preset.load()
+        data = self.img.load()
         for x in range(self.width):
             for y in range(self.length):
                 data[x, y] = colorKey[nearest_color(data[x, y])]
@@ -528,10 +542,10 @@ class ManualAnalyzer(Analyzer):
 
     def next_item(self):
         '''
-        Moves self.x and self.y to the next black (unvisited) coordinate in self.img
+        Moves self.x and self.y to the next non-white coordinate in self.img
         '''
 
-        status, self.x, self.y = self.move_cursor(lambda color: not color in DISPLAY_COLORKEY.keys(),
+        status, self.x, self.y = self.move_cursor(lambda color: color == colorKey[Background],
                                                   self.x, self.y,
                                                   self.width, self.length,
                                                   reset_lines=True)
@@ -540,9 +554,43 @@ class ManualAnalyzer(Analyzer):
 
 
     def analyze(self):
-        self.refine_preset()
+        #self.refine_preset()
 
         while self.next_item():
-            return
+            new_item = []
+            cur_color = self.img.getpixel([self.x, self.y])
+
+            if cur_color == colorKey[BuddedYeast] or cur_color == colorKey['BuddedYeast2']:
+                new_areas, maxy, minx, miny, maxx, new_validity, new_divots = self.get_region(
+                    self.x, self.y, desired_color=lambda color : color == colorKey[BuddedYeast] or color == colorKey['BuddedYeast2'])
+                new_item = new_areas
+                self.add_region(new_item, maxy, minx, miny, maxx)
+
+                self.fix_area_order(new_item)
+
+
+                self.flood_fill(new_item[0], colorKey[BuddedYeast], different_img=self.output)
+                self.flood_fill(new_item[1], colorKey['BuddedYeast2'], different_img=self.output)
+
+                
+
+            else:
+                new_item.append([])
+                maxx, minx, maxy, miny, validity, divots = self.get_one_area(self.x, self.y, new_item[0], 
+                                                                            max_dist=1, desired_color=lambda color : color == cur_color)
+                
+                if cur_color == colorKey[IgnoredYeast]:
+                    self.add_region(new_item, [maxy], [minx], [miny], [maxx], True)
+                elif cur_color == colorKey[Yeast]:
+                    self.add_region(new_item, [maxy], [minx], [miny], [maxx])
+                elif cur_color == colorKey['Divot']:
+                    pass
+
+                for x in new_item:
+                    self.flood_fill(x, colorKey[Background]) #(255, 0, 0))
+                    if cur_color != colorKey['Divot']:
+                        self.flood_fill(x, cur_color, different_img=self.output)
+
+
 
 

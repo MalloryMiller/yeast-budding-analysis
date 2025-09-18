@@ -89,8 +89,9 @@ def nearest_color(color):
     hsv = rgb_to_hsv(color[0]/255, color[1]/255, color[2]/255)
     h = hsv[0]
     s = hsv[1]
+    v = hsv[2]
 
-    if s < .1:
+    if s < 0.1 or v < 0.1:
         return Background
     
     dist = inf

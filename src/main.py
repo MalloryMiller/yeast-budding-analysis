@@ -46,10 +46,18 @@ class main():
         return YeastManager(title, path, micronpp, UNITS)
 
 
-
+    def grayscale_image_copy(self, filename):
+        original = Image.open(filename)
+        original = ImageOps.grayscale(original) 
+        original = original.convert("RGB")
+        return original
 
     
     def analyze(self, filename, key=True):
+        '''
+        Analyzes given file and generates output files
+
+        '''
         title, path = self.setup_folder(filename)
         img = Image.open(filename)
         
@@ -57,9 +65,10 @@ class main():
         
 
         img = ImageOps.grayscale(img) 
+        img = img.convert("RGB")
         
         #img = img.filter(ImageFilter.GaussianBlur(SMOOTHING))
-        img = img.convert("RGB")
+        
         #img = ImageOps.autocontrast(img, cutoff = CONTRAST_CUTOFF, ignore = CONTRAST_IGNORE)
         #filter_out_grays(img)
 
@@ -75,7 +84,8 @@ class main():
         a = Analyzer(img, ym)
         a.analyze()
 
-        original = Image.open(filename)
+        original = self.grayscale_image_copy(filename)
+
         img = ImageChops.multiply(original, img)
 
         if key:
@@ -99,9 +109,26 @@ class main():
         img = Image.open(filename)
         ym = self.make_ym(img, title, path)
         a = ManualAnalyzer(img, ym)
+        self.save(a.img, path + title + "/READPRESET" + title + ".png")
         a.refine_preset()
+        a.analyze()
 
-        self.save(a.preset, path + title + "/READPRESET" + title + ".png")
+
+        ym.results()
+
+
+        original = self.grayscale_image_copy(filename)
+
+        img = ImageChops.multiply(original, a.output)
+
+        if key:
+            k=Key(img, DISPLAY_COLORKEY)
+            img = k.append_key(img)
+
+        self.save(img, path + title + "/results_of_" + title + ".png")
+
+        a.label_img(img)
+        self.save(img, path + title + "/labeled_" + title + ".png")
 
 
 
@@ -115,6 +142,7 @@ print("partial done")
 m.analyze("tests/full_test.jpg")
 print("full done")'''
 
-m.analyze("tests/cleaner_test.jpg")
+#m.analyze("tests/cleaner_test.jpg")
 m.manual_analyze("tests/cleaner_test.jpg")
+#m.manual_analyze("tests/test.jpg")
 print("cleaner done")
