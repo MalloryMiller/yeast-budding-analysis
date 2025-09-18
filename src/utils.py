@@ -71,7 +71,6 @@ for c in list([Yeast, BuddedYeast, 'BuddedYeast2', IgnoredYeast, 'Divot']):
                                  colorKey[c][2]/255)[0]] = c
  
 
-print(hue_colorKey)
 
 
 
@@ -109,13 +108,11 @@ def nearest_color(color):
 
 
 def ppi_to_micronpp(ppi):
-    print(float(1 / (ppi * 25400)))
     return float(1 / (ppi * 25400))
 
 
 
 def get_adj(posn, dir):
-    print(posn, POSN_ADJUSTMENT[dir][0])
     return [
         posn[0] + POSN_ADJUSTMENT[dir][0], 
         posn[1] + POSN_ADJUSTMENT[dir][1]

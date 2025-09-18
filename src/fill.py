@@ -30,7 +30,7 @@ class Analyzer:
                 draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
         for b in self.ym.cluster:
             for s in b.yeast:
-                pass #draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
+                draw.text((s.anchor[0], s.anchor[1]), str(s.id), (255,255,255), anchor='mm')
 
         
         
@@ -404,7 +404,6 @@ class Analyzer:
 
         if len(divot_areas) != 2 or len(to_change) != 1:
             return to_change, max_ys, min_xs, min_ys, max_xs, False # too many divots to be a divide or too many cells to be sorted into parent and bud
-        #print(divot_areas)
         point1, point2 = self.find_nearest_pair(divot_areas)
         
 
@@ -494,6 +493,9 @@ class Analyzer:
                     self.flood_fill(area, colorKey[color]) 
 
     def fix_area_order(self, areas):
+        '''
+        Assuming only two regions are in the area, orders them such that the first region in the list is the larger one (the parent of the bud)
+        '''
         if len(areas[0]) < len(areas[-1]):
             areas.reverse()
 

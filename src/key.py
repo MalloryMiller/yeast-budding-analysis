@@ -40,7 +40,6 @@ class Key():
         cur_pos = self.key_color_width // 2
         new = Image.new(mode="RGB", size=(self.width, self.key_height), color=self.background_color)
 
-        print(self.colors)
         for x in self.colors.keys():
             cur = self.generate_single_color_label(self.colors[x], x)
             new.paste(cur, (cur_pos, (self.key_height - self.key_color_height) // 2))
