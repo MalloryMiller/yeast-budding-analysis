@@ -483,6 +483,8 @@ class Analyzer:
                 for area in to_change:
                     self.flood_fill(area, colorKey['New']) 
 
+                self.fix_area_order(to_change)
+
                 region_type = self.add_region(to_change, max_ys, min_xs, min_ys, max_xs)
                 
                 for i, area in enumerate(to_change):
@@ -492,7 +494,7 @@ class Analyzer:
                     self.flood_fill(area, colorKey[color]) 
 
     def fix_area_order(self, areas):
-        if len(areas[0]) > len(areas[-1]):
+        if len(areas[0]) < len(areas[-1]):
             areas.reverse()
 
                     

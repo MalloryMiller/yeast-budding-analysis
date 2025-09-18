@@ -137,12 +137,12 @@ class main():
 
 m = main()
 
-'''m.analyze("tests/test.jpg")
+m.analyze("tests/test.jpg")
 print("partial done")
 m.analyze("tests/full_test.jpg")
-print("full done")'''
+print("full done")
 
-#m.analyze("tests/cleaner_test.jpg")
-m.manual_analyze("tests/cleaner_test.jpg")
+m.analyze("tests/cleaner_test.jpg")
+#m.manual_analyze("tests/cleaner_test.jpg")
 #m.manual_analyze("tests/test.jpg")
 print("cleaner done")
